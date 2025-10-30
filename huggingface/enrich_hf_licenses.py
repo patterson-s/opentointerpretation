@@ -1,371 +1,381 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from __future__ import annotations
 
 import argparse
+import html
+import io
 import json
 import os
+import re
 import sys
 import time
-from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 
-# Optional dependency only used for scraping fallback
-try:
-    from bs4 import BeautifulSoup  # type: ignore
-    _BS4_AVAILABLE = True
-except Exception:
-    _BS4_AVAILABLE = False
+HF_API = "https://huggingface.co/api/models/"
+HTTP_TIMEOUT = 20
+UA = {"User-Agent": "opentointerpretation-license-bot/2.0"}
 
-API_BASE = "https://huggingface.co/api/models"
-WEB_BASE = "https://huggingface.co"
+LICENSE_SLUG_MAP = {
+    # Common normalizations
+    "apache 2.0": "apache-2.0",
+    "apache-2": "apache-2.0",
+    "apache-2.0": "apache-2.0",
+    "apache license 2.0": "apache-2.0",
+    "apache license version 2.0": "apache-2.0",
+    "mit": "mit",
+    "bsd-3-clause": "bsd-3-clause",
+    "bsd-2-clause": "bsd-2-clause",
+    "mpl-2.0": "mpl-2.0",
+    "agpl-3.0": "agpl-3.0",
+    "gpl-3.0": "gpl-3.0",
+    "lgpl-3.0": "lgpl-3.0",
+    "cc-by-4.0": "cc-by-4.0",
+    "cc-by-sa-4.0": "cc-by-sa-4.0",
+    "cc-by-nc-4.0": "cc-by-nc-4.0",
+    "cc-by-nc-sa-4.0": "cc-by-nc-sa-4.0",
+    "openrail": "openrail",
+    "openrail++": "openrail++",
+    "bigscience-bloom-rail-1.0": "bigscience-bloom-rail-1.0",
+    "llama 3 community license": "llama3-community",
+    "llama 2 community license": "llama2-community",
+    # Some pages show "other" or "unknown" – keep as-is if found.
+}
 
-DEFAULT_SLEEP = 0.15   # faster default, still polite
-DEFAULT_RETRIES = 3
-TIMEOUT = 25
+LICENSE_FINGERPRINTS = [
+    (re.compile(r"apache\s+license\s+version\s*2\.0", re.I), "apache-2.0"),
+    (re.compile(r"\bmit\s+license\b", re.I), "mit"),
+    (re.compile(r"\bmozilla public license\s*version\s*2\.0\b", re.I), "mpl-2.0"),
+    (re.compile(r"\bgnu\s+general\s+public\s+license\s+version\s*3\b", re.I), "gpl-3.0"),
+    (re.compile(r"\bgnu\s+lesser\s+general\s+public\s+license\s+version\s*3\b", re.I), "lgpl-3.0"),
+    (re.compile(r"\baffero\s+general\s+public\s+license\s+version\s*3\b", re.I), "agpl-3.0"),
+    (re.compile(r"\bbsd\s*(?:3|three)[-\s]*clause\b", re.I), "bsd-3-clause"),
+    (re.compile(r"\bcc[-\s]*by[-\s]*nc[-\s]*sa[-\s]*4\.0\b", re.I), "cc-by-nc-sa-4.0"),
+    (re.compile(r"\bcc[-\s]*by[-\s]*nc[-\s]*4\.0\b", re.I), "cc-by-nc-4.0"),
+    (re.compile(r"\bcc[-\s]*by[-\s]*sa[-\s]*4\.0\b", re.I), "cc-by-sa-4.0"),
+    (re.compile(r"\bcc[-\s]*by[-\s]*4\.0\b", re.I), "cc-by-4.0"),
+]
 
+# ---------- Utilities ----------
 
-# --------------------------- utilities ---------------------------
-
-def atomic_write_json(path: Path, obj: Any) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2, sort_keys=False)
-    os.replace(tmp, path)  # atomic on same filesystem
-
-def normalize_license(raw: Optional[str]) -> Optional[str]:
-    if raw is None:
+def normalize_license(s: Optional[str]) -> Optional[str]:
+    if not s:
         return None
-    lic = raw.strip().lower()
-    lic = lic.replace("license:", "").strip()
-    return lic or None
+    slug = re.sub(r"\s+", " ", s.strip()).lower()
+    slug = slug.replace("_", "-")
+    slug = LICENSE_SLUG_MAP.get(slug, slug)
+    # Coerce some obvious variants:
+    slug = re.sub(r"apache\s*(?:licen[cs]e)?\s*version?\s*2(?:\.0)?", "apache-2.0", slug)
+    slug = re.sub(r"\bmit(?=\b)", "mit", slug)
+    slug = re.sub(r"\bmpl\s*2(?:\.0)?\b", "mpl-2.0", slug)
+    slug = re.sub(r"\bcc\s*by\s*nc\s*sa\s*4(?:\.0)?\b", "cc-by-nc-sa-4.0", slug)
+    slug = re.sub(r"\bcc\s*by\s*nc\s*4(?:\.0)?\b", "cc-by-nc-4.0", slug)
+    slug = re.sub(r"\bcc\s*by\s*sa\s*4(?:\.0)?\b", "cc-by-sa-4.0", slug)
+    slug = re.sub(r"\bcc\s*by\s*4(?:\.0)?\b", "cc-by-4.0", slug)
+    return slug
 
-def pick_license_from_api_payload(payload: Dict[str, Any]) -> Optional[str]:
-    if payload.get("license"):
-        return normalize_license(payload["license"])
-    card = payload.get("cardData") or {}
-    for key in ("license", "License", "model_license", "model.license"):
-        if key in card and card[key]:
-            return normalize_license(card[key])
-    tags = payload.get("tags") or []
-    for t in tags:
-        if isinstance(t, str) and t.lower().startswith("license:"):
-            return normalize_license(t.split(":", 1)[1])
-    meta = payload.get("metadata") or {}
-    if meta.get("license"):
-        return normalize_license(meta["license"])
-    return None
-
-def api_get_license(repo_id: str, session: requests.Session, retries: int) -> Tuple[Optional[str], Optional[str]]:
-    url = f"{API_BASE}/{repo_id}"
-    last_err = None
-    for attempt in range(1, retries + 1):
-        try:
-            r = session.get(url, timeout=TIMEOUT)
-            if r.status_code == 200:
-                return pick_license_from_api_payload(r.json()), None
-            elif r.status_code == 404:
-                return None, f"API 404 for {repo_id}"
-            else:
-                last_err = f"HTTP {r.status_code}: {r.text[:200]}"
-        except Exception as e:
-            last_err = f"{type(e).__name__}: {e}"
-        time.sleep(min(1.5 * attempt, 4.0))
-    return None, last_err
-
-def scrape_license(repo_id: str, session: requests.Session, retries: int) -> Tuple[Optional[str], Optional[str]]:
-    if not _BS4_AVAILABLE:
-        return None, "BeautifulSoup not installed"
-    url = f"{WEB_BASE}/{repo_id}"
-    last_err = None
-    for attempt in range(1, retries + 1):
-        try:
-            r = session.get(url, timeout=TIMEOUT)
-            if r.status_code != 200:
-                last_err = f"HTTP {r.status_code} at {url}"
-            else:
-                soup = BeautifulSoup(r.text, "html.parser")
-                # Heuristic 1: "License:" pill then last <span>
-                for tag in soup.find_all(string=lambda t: isinstance(t, str) and "License:" in t):
-                    parent = getattr(tag, "parent", None)
-                    if parent:
-                        spans = parent.find_all("span")
-                        if spans:
-                            candidate = spans[-1].get_text(strip=True)
-                            if candidate:
-                                return normalize_license(candidate), None
-                # Heuristic 2: /licenses/<slug>
-                a_tags = soup.select('a[href^="/licenses/"]')
-                if a_tags:
-                    candidate = a_tags[0].get_text(strip=True)
-                    if candidate:
-                        return normalize_license(candidate), None
-                return None, "License tag not found"
-        except Exception as e:
-            last_err = f"{type(e).__name__}: {e}"
-        time.sleep(min(1.5 * attempt, 4.0))
-    return None, last_err
-
-def default_out_path(in_path: Path) -> Path:
-    stem = in_path.stem
-    suffix = in_path.suffix or ".json"
-    return in_path.with_name(f"{stem}.licensed{suffix}")
 
 def checkpoint_paths(out_path: Path) -> Tuple[Path, Path]:
-    ckpt = out_path.with_suffix(out_path.suffix + ".ckpt.json")
-    miss = out_path.with_suffix(out_path.suffix + ".misses.txt")
-    return ckpt, miss
+    return Path(str(out_path) + ".ckpt.json"), Path(str(out_path) + ".misses.txt")
 
-def repo_id_from_record(rec: Dict[str, Any]) -> Optional[str]:
-    rid = rec.get("model_id")
-    if rid:
-        return rid
-    url = rec.get("url", "")
-    if url.startswith(WEB_BASE + "/"):
-        return url.replace(WEB_BASE + "/", "")
-    return None
 
-def load_json_list(path: Path) -> List[Dict[str, Any]]:
+def write_json(path: Path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+
+
+def load_json(path: Path) -> List[Dict]:
     with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, list):
-        raise ValueError(f"{path} is not a JSON list")
-    return data
-
-def index_by_repo_id(records: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    m: Dict[str, Dict[str, Any]] = {}
-    for r in records:
-        rid = repo_id_from_record(r)
-        if rid:
-            m[rid] = r
-    return m
+        return json.load(f)
 
 
-# --------------------------- core ---------------------------
+def get(repo_id: str, url: str, **kw) -> requests.Response:
+    return requests.get(url, timeout=HTTP_TIMEOUT, headers=UA, **kw)
 
-def enrich_with_checkpoints(records: List[Dict[str, Any]],
-                            out_path: Path,
-                            do_scrape: bool,
-                            sleep_seconds: float,
-                            retries: int,
-                            progress_every: int,
-                            checkpoint_every: int,
-                            resume: bool) -> Tuple[List[Dict[str, Any]], List[str], Counter]:
+
+# ---------- Extractors ----------
+
+def license_from_api(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
+    try:
+        r = get(repo_id, HF_API + repo_id)
+        if r.status_code != 200:
+            return None, f"API {r.status_code}"
+        data = r.json()
+        # 1) direct license
+        cand = data.get("license")
+        if cand:
+            return normalize_license(cand), None
+        # 2) cardData.license
+        card = data.get("cardData") or {}
+        cand = card.get("license")
+        if cand:
+            return normalize_license(cand), None
+        # 3) metadata.license
+        md = data.get("metadata") or {}
+        cand = md.get("license")
+        if cand:
+            return normalize_license(cand), None
+        # 4) tags with "license:<slug>"
+        tags = data.get("tags") or []
+        for t in tags:
+            m = re.match(r"license\s*:\s*(.+)", str(t), re.I)
+            if m:
+                return normalize_license(m.group(1)), None
+        # 5) look for LICENSE sibling
+        siblings = data.get("siblings") or []
+        for sib in siblings:
+            name = sib.get("rfilename") or ""
+            if name.upper() in {"LICENSE", "LICENSE.TXT"}:
+                # fingerprint below (fallback 5 handles download)
+                pass
+        return None, "API miss"
+    except Exception as e:
+        return None, f"API error: {e}"
+
+
+def license_from_static_html(repo_url: str) -> Tuple[Optional[str], Optional[str]]:
     """
-    Two-pass enrichment with periodic checkpoints and resume.
-    Returns (enriched_records, misses, license_counts)
+    Parse server-rendered HTML for 'License:' chip or /licenses/<slug> link.
+    (Works when HF still emits those in SSR; may miss for JS-only pages.)
     """
-    # Prepare session
-    session = requests.Session()
-    headers = {"Accept": "application/json", "User-Agent": "license-enricher/1.3 (+https://huggingface.co)"}
-    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    session.headers.update(headers)
+    try:
+        r = get(repo_url, repo_url)
+        if r.status_code != 200:
+            return None, f"scrape {r.status_code}"
+        html_text = r.text
+        # Heuristic 1: "License:" followed by a badge-like span/a nearby
+        m = re.search(r">License:\s*</[^>]+>\s*([^<]+)<", html_text, re.I)
+        if m:
+            return normalize_license(html.unescape(m.group(1)).strip()), None
+        # Heuristic 2: /licenses/<slug> anchor
+        m = re.search(r'href="/licenses/([^"?/#\s]+)"', html_text, re.I)
+        if m:
+            return normalize_license(m.group(1)), None
+        return None, "scrape miss: License tag not found"
+    except Exception as e:
+        return None, f"scrape error: {e}"
 
-    # Resume support: if resume flag and an existing output/ckpt exists, merge licenses
-    existing: List[Dict[str, Any]] = []
-    ckpt_path, miss_path = checkpoint_paths(out_path)
-    if resume:
-        base_to_read = out_path if out_path.exists() else (ckpt_path if ckpt_path.exists() else None)
-        if base_to_read:
-            try:
-                existing = load_json_list(base_to_read)
-                print(f"[resume] Loaded {len(existing)} items from {base_to_read}")
-            except Exception as e:
-                print(f"[resume] Could not load {base_to_read}: {e}")
 
-    # Map for quick lookup
-    recs_by_id = index_by_repo_id(records)
-    if existing:
-        exist_by_id = index_by_repo_id(existing)
-        # copy known licenses into records
-        updated = 0
-        for rid, rec in recs_by_id.items():
-            if rid in exist_by_id:
-                lic = exist_by_id[rid].get("license")
-                if lic is not None and rec.get("license") != lic:
-                    rec["license"] = lic
-                    updated += 1
-        if updated:
-            print(f"[resume] Reused {updated} known licenses")
+def license_from_hydration_json(repo_url: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Parse preloaded JSON from a <script> tag used to hydrate the React app.
+    We search for a JSON substring that contains `"cardData"` and `"license"`.
+    """
+    try:
+        r = get(repo_url, repo_url)
+        if r.status_code != 200:
+            return None, f"hydrate {r.status_code}"
+        html_text = r.text
+        # Extract the biggest JSON-like blob that contains "cardData"
+        # Then find "license":"..."
+        # Keep it regex-based to avoid strict JSON parsing on huge blobs.
+        block = None
+        for m in re.finditer(r"<script[^>]*>(.*?)</script>", html_text, re.S | re.I):
+            s = m.group(1)
+            if "cardData" in s and "license" in s:
+                block = s
+                break
+        if not block:
+            return None, "hydrate miss: script with cardData not found"
+        m = re.search(r'"license"\s*:\s*"([^"]+)"', block)
+        if not m:
+            return None, "hydrate miss: license not in script"
+        return normalize_license(html.unescape(m.group(1))), None
+    except Exception as e:
+        return None, f"hydrate error: {e}"
 
-    total = len(records)
+
+def _readme_front_matter(text: str) -> Dict[str, str]:
+    """
+    Parse very simple YAML front-matter: key: value lines between first two ---.
+    Avoid PyYAML dependency; we only need 'license:'.
+    """
+    m = re.match(r"\s*---\s*\r?\n(.*?)\r?\n---\s*\r?\n", text, re.S)
+    if not m:
+        return {}
+    fm = m.group(1)
+    result: Dict[str, str] = {}
+    for line in fm.splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            result[k.strip().lower()] = v.strip().strip('"').strip("'")
+    return result
+
+
+def license_from_raw_readme(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Fetch https://huggingface.co/<repo>/raw/README.md and parse YAML front-matter.
+    """
+    url = f"https://huggingface.co/{repo_id}/raw/README.md"
+    try:
+        r = get(repo_id, url)
+        if r.status_code != 200:
+            return None, f"readme {r.status_code}"
+        fm = _readme_front_matter(r.text or "")
+        cand = fm.get("license")
+        if cand:
+            return normalize_license(cand), None
+        return None, "readme miss: no license in front matter"
+    except Exception as e:
+        return None, f"readme error: {e}"
+
+
+def license_from_license_file(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Use the API to list siblings, fetch LICENSE if present, then fingerprint text.
+    """
+    try:
+        r = get(repo_id, HF_API + repo_id)
+        if r.status_code != 200:
+            return None, f"licensefile api {r.status_code}"
+        siblings = (r.json() or {}).get("siblings") or []
+        lic_name = None
+        for sib in siblings:
+            name = (sib.get("rfilename") or "").strip()
+            if name.upper() in {"LICENSE", "LICENSE.TXT"}:
+                lic_name = name
+                break
+        if not lic_name:
+            return None, "licensefile miss: no LICENSE blob"
+        raw = f"https://huggingface.co/{repo_id}/resolve/main/{lic_name}"
+        rr = get(repo_id, raw, allow_redirects=True)
+        if rr.status_code != 200:
+            return None, f"licensefile fetch {rr.status_code}"
+        txt = rr.text or ""
+        for pat, slug in LICENSE_FINGERPRINTS:
+            if pat.search(txt):
+                return slug, None
+        return None, "licensefile miss: unknown license text"
+    except Exception as e:
+        return None, f"licensefile error: {e}"
+
+
+# ---------- Processing ----------
+
+@dataclass
+class Outcome:
+    license: Optional[str]
+    note: Optional[str]
+
+
+def resolve_license(repo_id: str, repo_url: str) -> Outcome:
+    # 1) API
+    lic, note = license_from_api(repo_id)
+    if lic:
+        return Outcome(lic, "api")
+    # 2) Static HTML
+    lic, note2 = license_from_static_html(repo_url)
+    if lic:
+        return Outcome(lic, "scrape")
+    # 3) Hydration JSON
+    lic, note3 = license_from_hydration_json(repo_url)
+    if lic:
+        return Outcome(lic, "hydrate")
+    # 4) Raw README.md front matter
+    lic, note4 = license_from_raw_readme(repo_id)
+    if lic:
+        return Outcome(lic, "readme")
+    # 5) LICENSE file fingerprint
+    lic, note5 = license_from_license_file(repo_id)
+    if lic:
+        return Outcome(lic, "licensefile")
+    # Construct combined note
+    reasons = "; ".join(
+        r for r in [note, note2, note3, note4, note5] if r
+    ) or "unknown"
+    return Outcome(None, reasons)
+
+
+def enrich(records: List[Dict], interval: int = 100, verbose: bool = True
+           ) -> Tuple[List[Dict], List[str]]:
+    """
+    For each record, if 'license' is missing/empty, attempt to resolve it.
+    Returns (enriched_records, misses_list)
+    """
+    out: List[Dict] = []
     misses: List[str] = []
-    license_counts: Counter = Counter()
+    t0 = time.time()
 
-    # Helper to compute counts and write checkpoints periodically
-    def recompute_counts() -> None:
-        license_counts.clear()
-        for r in records:
-            license_counts[r.get("license") or "unknown"] += 1
+    for i, rec in enumerate(records):
+        repo_id = rec.get("model_id") or rec.get("repo_id")
+        url = rec.get("url") or (f"https://huggingface.co/{repo_id}" if repo_id else None)
 
-    def write_ckpt(label: str) -> None:
-        atomic_write_json(ckpt_path, records)
-        # write partial miss log
-        if misses:
-            with open(miss_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(misses))
-        print(f"[ckpt] {label}: wrote checkpoint -> {ckpt_path} (misses: {len(misses)})")
-
-    # ---------------- PASS 1: API only ----------------
-    print(f"[phase] API pass over {total} models …")
-    processed = 0
-    for idx, rec in enumerate(records, start=1):
-        rid = repo_id_from_record(rec)
-        if not rid:
-            rec["license"] = None
-            misses.append(f"[{idx}] Missing repo_id in record")
+        if not repo_id or not url:
+            out.append(rec)
+            misses.append(f"[{i}] <missing repo_id/url> (skip)")
             continue
 
-        # Skip if already resolved (resume or previous runs)
-        if rec.get("license"):
-            processed += 1
-            if progress_every and processed % progress_every == 0:
-                print(f"[API {processed}/{total}] … (skipping resolved)")
+        current = (rec.get("license") or "").strip()
+        if current:
+            out.append(rec)
+            if verbose and i % interval == 0:
+                print(f"[{i}] {repo_id}: already has license ({current})")
             continue
 
-        lic, api_err = api_get_license(rid, session, retries)
-        rec["license"] = lic
-        processed += 1
-
-        if progress_every and processed % progress_every == 0:
-            known = sum(1 for r in records if r.get("license"))
-            print(f"[API {processed}/{total}] known={known}")
-
-        if checkpoint_every and processed % checkpoint_every == 0:
-            recompute_counts()
-            write_ckpt(f"API {processed}/{total}")
-
-        if sleep_seconds > 0:
-            time.sleep(sleep_seconds)
-
-    # ---------------- PASS 2: scrape unknowns ----------------
-    unknown_idxs = [i for i, r in enumerate(records) if not r.get("license")]
-    if do_scrape and _BS4_AVAILABLE and unknown_idxs:
-        print(f"[phase] SCRAPE pass for {len(unknown_idxs)} unknowns …")
-        for k, i in enumerate(unknown_idxs, start=1):
-            rec = records[i]
-            rid = repo_id_from_record(rec)
-            lic, scrape_err = scrape_license(rid, session, retries)
-            if lic:
-                rec["license"] = lic
-            else:
-                misses.append(f"[{i+1}] {rid} (API miss; scrape miss: {scrape_err})")
-
-            if progress_every and k % max(1, progress_every // 2) == 0:
-                print(f"[SCRAPE {k}/{len(unknown_idxs)}] …")
-
-            if checkpoint_every and k % checkpoint_every == 0:
-                recompute_counts()
-                write_ckpt(f"SCRAPE {k}/{len(unknown_idxs)}")
-
-            if sleep_seconds > 0:
-                time.sleep(sleep_seconds)
-    else:
-        if not do_scrape:
-            print("[phase] SCRAPE skipped (--no-scrape)")
-        elif not _BS4_AVAILABLE:
-            print("[phase] SCRAPE unavailable (install beautifulsoup4, lxml)")
+        oc = resolve_license(repo_id, url)
+        if oc.license:
+            newrec = dict(rec)
+            newrec["license"] = oc.license
+            newrec["_license_source"] = oc.note  # provenance for debugging
+            out.append(newrec)
+            if verbose:
+                print(f"[{i}] {repo_id}: {oc.license} ({oc.note})")
         else:
-            print("[phase] No unknowns to scrape 🎉")
+            out.append(rec)
+            entry = f"[{i}] {repo_id} ({oc.note})"
+            misses.append(entry)
+            if verbose:
+                print(f"[{i}] {repo_id}: MISS -> {oc.note}")
 
-    # final counts
-    recompute_counts()
-    return records, misses, license_counts
+        # checkpoint
+        if (i + 1) % interval == 0:
+            yield out, misses, i + 1, time.time() - t0
 
-
-def write_final(out_path: Path, enriched: List[Dict[str, Any]], misses: List[str], license_counts: Counter) -> None:
-    atomic_write_json(out_path, enriched)
-    miss_log = out_path.with_suffix(out_path.suffix + ".misses.txt")
-    if misses:
-        with open(miss_log, "w", encoding="utf-8") as f:
-            f.write("\n".join(misses))
-    else:
-        try:
-            if miss_log.exists():
-                miss_log.unlink()
-        except Exception:
-            pass
-
-    print(f"\nWrote: {out_path}")
-    if misses:
-        print(f"{len(misses)} models missing license. Miss log: {miss_log}")
-    else:
-        print("All models have a license value.")
-
-    # breakdown
-    print("\nLicense breakdown (top first):")
-    total = sum(license_counts.values())
-    for lic, cnt in license_counts.most_common():
-        pct = (cnt / total) * 100 if total else 0
-        print(f"  {lic:>12}: {cnt:>5}  ({pct:5.1f}%)")
-    print(f"  {'TOTAL':>12}: {total:>5}")
+    yield out, misses, len(records), time.time() - t0
 
 
-# --------------------------- CLI ---------------------------
+# ---------- CLI ----------
 
 def main():
-    p = argparse.ArgumentParser(description="Add `license` to HF model-card JSON (checkpoints + resume).")
-    p.add_argument("input_json", type=str, help="Path to input JSON (list of model records).")
-    p.add_argument("--out", type=str, default=None, help="Output JSON (default: *.licensed.json).")
-    p.add_argument("--no-scrape", action="store_true", help="Disable HTML fallback scraping.")
-    p.add_argument("--sleep", type=float, default=DEFAULT_SLEEP, help="Seconds to sleep between requests.")
-    p.add_argument("--retries", type=int, default=DEFAULT_RETRIES, help="HTTP retry attempts.")
-    p.add_argument("--progress", type=int, default=200, help="Print a progress tick every N records (0 = silent).")
-    p.add_argument("--checkpoint-every", type=int, default=200, help="Write checkpoint every N items (0 = off).")
-    p.add_argument("--resume", action="store_true", help="Resume from existing output/ckpt if present.")
-    args = p.parse_args()
+    ap = argparse.ArgumentParser(description="Enrich HF licenses with robust fallbacks.")
+    ap.add_argument("input", help="Path to input JSON array")
+    ap.add_argument("output", help="Path to write enriched JSON")
+    ap.add_argument("--interval", type=int, default=100, help="Checkpoint interval (default 100)")
+    args = ap.parse_args()
 
-    in_path = Path(args.input_json)
-    if not in_path.exists():
-        print(f"Input not found: {in_path}", file=sys.stderr)
-        sys.exit(1)
+    in_path = Path(args.input)
+    out_path = Path(args.output)
+    ckpt_path, miss_path = checkpoint_paths(out_path)
 
-    out_path = Path(args.out) if args.out else default_out_path(in_path)
-
-    try:
-        records = load_json_list(in_path)
-    except Exception as e:
-        print(f"Failed to load JSON: {type(e).__name__}: {e}", file=sys.stderr)
-        sys.exit(1)
-
+    records = load_json(in_path)
     print(f"Loaded {len(records)} records from: {in_path}")
     print(f"Writing to: {out_path}")
-    if args.no_scrape:
-        print("HTML fallback: DISABLED")
-    else:
-        if not _BS4_AVAILABLE:
-            print("HTML fallback: unavailable (pip install beautifulsoup4 lxml)")
-        else:
-            print("HTML fallback: ENABLED")
+    print("HTML fallback: ENABLED (static + hydration + README + LICENSE)")
 
     try:
-        enriched, misses, license_counts = enrich_with_checkpoints(
-            records=records,
-            out_path=out_path,
-            do_scrape=(not args.no_scrape),
-            sleep_seconds=max(0.0, args.sleep),
-            retries=max(1, args.retries),
-            progress_every=max(0, args.progress),
-            checkpoint_every=max(0, args.checkpoint_every),
-            resume=args.resume,
-        )
-    except KeyboardInterrupt:
-        # last-ditch checkpoint
-        ckpt_path, miss_path = checkpoint_paths(out_path)
-        print("\nInterrupted — writing final checkpoint…")
-        atomic_write_json(ckpt_path, records)
-        if 'misses' in locals() and misses:
+        last_out, last_miss = None, None
+        for out, misses, n, elapsed in enrich(records, interval=args.interval):
+            write_json(ckpt_path, out)
             with open(miss_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(misses))
-        print(f"Checkpoint written to: {ckpt_path}")
-        sys.exit(130)
+            print(f"Checkpoint @ {n} ({elapsed:.1f}s): {ckpt_path.name} / {miss_path.name}")
+            last_out, last_miss = out, misses
 
-    write_final(out_path, enriched, misses, license_counts)
+    except KeyboardInterrupt:
+        print("\nInterrupted — leaving latest checkpoint on disk.")
+        return
+
+    # finalize
+    write_json(out_path, last_out)
+    with open(miss_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(last_miss))
+    print(f"\nDone.\nFinal: {out_path}\nMisses: {miss_path}")
 
 
 if __name__ == "__main__":
