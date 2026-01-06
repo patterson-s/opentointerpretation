@@ -2,3 +2,7 @@ huggingface_hub
 beautifulsoup4 
 requests 
 lxml
+jupyter
+ipykernel
+matplotlib
+pandas

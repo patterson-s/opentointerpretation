@@ -1,0 +1,90 @@
+[
+  {
+    "generation": "Gemini 1",
+    "variant": "Gemini 1.0 Ultra",
+    "model_id": "gemini-1-ultra",
+    "release_date": "2023-12-06",
+    "context_tokens": null,
+    "notes": "Initial flagship multimodal model announced by Google DeepMind; high-end reasoning and multimodal capabilities."
+  },
+  {
+    "generation": "Gemini 1",
+    "variant": "Gemini 1.0 Pro",
+    "model_id": "gemini-1-pro",
+    "release_date": "2023-12-06",
+    "context_tokens": null,
+    "notes": "General-purpose Gemini model; deployed via Bard web interface and API integration."
+  },
+  {
+    "generation": "Gemini 1",
+    "variant": "Gemini 1.0 Nano",
+    "model_id": "gemini-1-nano",
+    "release_date": "2023-12-06",
+    "context_tokens": null,
+    "notes": "Optimized for mobile/on-device use; deployed on Pixel 8 and Android ecosystem."
+  },
+  {
+    "generation": "Gemini 1.5",
+    "variant": "Gemini 1.5 Pro",
+    "model_id": "gemini-1.5-pro",
+    "release_date": "2024-02-15",
+    "context_tokens": 1000000,
+    "notes": "Major context expansion (1M token context in preview); early multimodal reasoning improvements."
+  },
+  {
+    "generation": "Gemini 1.5",
+    "variant": "Gemini 1.5 Flash",
+    "model_id": "gemini-1.5-flash",
+    "release_date": "2024-02-15",
+    "context_tokens": 1000000,
+    "notes": "Lightweight, faster variant emphasizing lower latency and efficiency."
+  },
+  {
+    "generation": "Gemini 2",
+    "variant": "Gemini 2.0 Pro",
+    "model_id": "gemini-2-pro",
+    "release_date": "2024-12-12",
+    "context_tokens": null,
+    "notes": "Announced as part of Google\u2019s 'Gemini Advanced' upgrade; replaced Bard branding in public interface."
+  },
+  {
+    "generation": "Gemini 2",
+    "variant": "Gemini 2.0 Flash",
+    "model_id": "gemini-2-flash",
+    "release_date": "2024-12-12",
+    "context_tokens": null,
+    "notes": "Optimized for speed and API cost-efficiency; integrated into Vertex AI."
+  },
+  {
+    "generation": "Gemini 2",
+    "variant": "Gemini 2.0 Flash-Lite",
+    "model_id": "gemini-2-flash-lite",
+    "release_date": "2025-01-20",
+    "context_tokens": null,
+    "notes": "Ultra-fast minimal model for lightweight use cases (mobile, low-power)."
+  },
+  {
+    "generation": "Gemini 2.5",
+    "variant": "Gemini 2.5 Pro",
+    "model_id": "gemini-2.5-pro",
+    "release_date": "2025-06-17",
+    "context_tokens": 2000000,
+    "notes": "Improved reasoning and 'thinking' capabilities; GA release in Vertex AI."
+  },
+  {
+    "generation": "Gemini 2.5",
+    "variant": "Gemini 2.5 Flash",
+    "model_id": "gemini-2.5-flash",
+    "release_date": "2025-06-17",
+    "context_tokens": 2000000,
+    "notes": "Fast and efficient model; publicly available through Vertex AI API."
+  },
+  {
+    "generation": "Gemini 2.5",
+    "variant": "Gemini 2.5 Flash-Lite",
+    "model_id": "gemini-2.5-flash-lite",
+    "release_date": "2025-07-22",
+    "context_tokens": null,
+    "notes": "Fastest and most cost-efficient Gemini model; targeted at Android and Edge deployments."
+  }
+]

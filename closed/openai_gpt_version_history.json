@@ -1,0 +1,178 @@
+[
+  {
+    "generation": "GPT-1",
+    "variant": "GPT-1",
+    "model_id": "gpt-1",
+    "release_date": "2018-06-11",
+    "context_tokens": null,
+    "notes": "117M parameter transformer model; initial proof-of-concept for generative pretraining."
+  },
+  {
+    "generation": "GPT-2",
+    "variant": "GPT-2 Small",
+    "model_id": "gpt-2-117M",
+    "release_date": "2019-02-14",
+    "context_tokens": 1024,
+    "notes": "117M parameter variant; early release for research."
+  },
+  {
+    "generation": "GPT-2",
+    "variant": "GPT-2 Medium",
+    "model_id": "gpt-2-345M",
+    "release_date": "2019-02-14",
+    "context_tokens": 1024,
+    "notes": "345M parameter model; released mid-2019."
+  },
+  {
+    "generation": "GPT-2",
+    "variant": "GPT-2 Large",
+    "model_id": "gpt-2-762M",
+    "release_date": "2019-02-14",
+    "context_tokens": 1024,
+    "notes": "762M parameter model; released after staged rollout."
+  },
+  {
+    "generation": "GPT-2",
+    "variant": "GPT-2 XL",
+    "model_id": "gpt-2-1.5B",
+    "release_date": "2019-11-05",
+    "context_tokens": 1024,
+    "notes": "Full GPT-2 model with 1.5B parameters, publicly released November 2019."
+  },
+  {
+    "generation": "GPT-3",
+    "variant": "Ada",
+    "model_id": "ada",
+    "release_date": "2020-06-11",
+    "context_tokens": 2048,
+    "notes": "Fastest, lowest-cost GPT-3 model; smaller capacity."
+  },
+  {
+    "generation": "GPT-3",
+    "variant": "Babbage",
+    "model_id": "babbage",
+    "release_date": "2020-06-11",
+    "context_tokens": 2048,
+    "notes": "Mid-tier GPT-3 model; moderate cost and reasoning ability."
+  },
+  {
+    "generation": "GPT-3",
+    "variant": "Curie",
+    "model_id": "curie",
+    "release_date": "2020-06-11",
+    "context_tokens": 2048,
+    "notes": "Balanced model with strong text understanding and summarization ability."
+  },
+  {
+    "generation": "GPT-3",
+    "variant": "Davinci",
+    "model_id": "davinci",
+    "release_date": "2020-06-11",
+    "context_tokens": 2048,
+    "notes": "Largest GPT-3 model; foundation for later tuned variants."
+  },
+  {
+    "generation": "GPT-3.5",
+    "variant": "text-davinci-002",
+    "model_id": "text-davinci-002",
+    "release_date": "2022-03-15",
+    "context_tokens": 4096,
+    "notes": "Instruction-tuned GPT-3.5 variant using Reinforcement Learning from Human Feedback (RLHF)."
+  },
+  {
+    "generation": "GPT-3.5",
+    "variant": "text-davinci-003",
+    "model_id": "text-davinci-003",
+    "release_date": "2022-11-28",
+    "context_tokens": 4096,
+    "notes": "Improved fine-tuned GPT-3.5; powered early ChatGPT."
+  },
+  {
+    "generation": "GPT-3.5",
+    "variant": "gpt-3.5-turbo",
+    "model_id": "gpt-3.5-turbo",
+    "release_date": "2023-03-01",
+    "context_tokens": 4096,
+    "notes": "Optimized chat model; faster, cheaper API model for conversational use."
+  },
+  {
+    "generation": "GPT-3.5",
+    "variant": "gpt-3.5-turbo-16k",
+    "model_id": "gpt-3.5-turbo-16k",
+    "release_date": "2023-06-13",
+    "context_tokens": 16384,
+    "notes": "Extended context version of GPT-3.5-turbo; same architecture, higher memory."
+  },
+  {
+    "generation": "GPT-4",
+    "variant": "gpt-4",
+    "model_id": "gpt-4",
+    "release_date": "2023-03-14",
+    "context_tokens": 8192,
+    "notes": "Base GPT-4 model; multimodal text and image support."
+  },
+  {
+    "generation": "GPT-4",
+    "variant": "gpt-4-32k",
+    "model_id": "gpt-4-32k",
+    "release_date": "2023-03-14",
+    "context_tokens": 32768,
+    "notes": "Extended context GPT-4 variant; available to enterprise users."
+  },
+  {
+    "generation": "GPT-4",
+    "variant": "gpt-4-turbo",
+    "model_id": "gpt-4-turbo",
+    "release_date": "2023-11-06",
+    "context_tokens": 128000,
+    "notes": "Lower-cost, faster GPT-4 variant; introduced with ChatGPT custom instructions and tools."
+  },
+  {
+    "generation": "GPT-4o",
+    "variant": "gpt-4o",
+    "model_id": "gpt-4o",
+    "release_date": "2024-05-13",
+    "context_tokens": 128000,
+    "notes": "Fully multimodal model supporting text, image, audio, and video; unified input/output."
+  },
+  {
+    "generation": "GPT-4o",
+    "variant": "gpt-4o-mini",
+    "model_id": "gpt-4o-mini",
+    "release_date": "2024-07-18",
+    "context_tokens": 128000,
+    "notes": "Smaller, cost-efficient variant of GPT-4o for real-time use."
+  },
+  {
+    "generation": "GPT-4.1",
+    "variant": "gpt-4.1",
+    "model_id": "gpt-4.1",
+    "release_date": "2025-04-14",
+    "context_tokens": 1000000,
+    "notes": "Enhanced GPT-4 model; unified reasoning, memory, and extended context (1M tokens)."
+  },
+  {
+    "generation": "GPT-4.1",
+    "variant": "gpt-4.1-mini",
+    "model_id": "gpt-4.1-mini",
+    "release_date": "2025-04-14",
+    "context_tokens": 1000000,
+    "notes": "Lightweight GPT-4.1 variant for lower-latency applications."
+  },
+  {
+    "generation": "GPT-4.5",
+    "variant": "gpt-4.5",
+    "model_id": "gpt-4.5",
+    "release_date": "2025-02-27",
+    "context_tokens": null,
+    "notes": "Research preview of next-generation GPT; bridge toward GPT-5."
+  },
+  {
+    "generation": "GPT-5",
+    "variant": "gpt-5",
+    "model_id": "gpt-5",
+    "release_date": "2025-08-07",
+    "context_tokens": null,
+    "notes": "Announced next-generation model expected to succeed GPT-4 family with improved multimodal reasoning and planning."
+  }
+]

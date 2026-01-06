@@ -1,0 +1,122 @@
+[
+  {
+    "generation": "Claude 1",
+    "variant": "Claude 1.0",
+    "api_id": null,
+    "release_date": "2023-03-14",
+    "context_tokens": null,
+    "notes": "First public Claude announcement (chat + API preview)."
+  },
+  {
+    "generation": "Claude 1",
+    "variant": "Instant 1.2",
+    "api_id": null,
+    "release_date": "2023-08-09",
+    "context_tokens": null,
+    "notes": "Lighter/faster Claude; API launch note. Now discontinued."
+  },
+  {
+    "generation": "Claude 2",
+    "variant": "Claude 2.0",
+    "api_id": null,
+    "release_date": "2023-07-11",
+    "context_tokens": 100000,
+    "notes": "Major upgrade; public beta at claude.ai + API."
+  },
+  {
+    "generation": "Claude 2",
+    "variant": "Claude 2.1",
+    "api_id": null,
+    "release_date": "2023-11-21",
+    "context_tokens": 200000,
+    "notes": "Larger context, lower hallucinations, early tool use."
+  },
+  {
+    "generation": "Claude 3",
+    "variant": "Haiku 3",
+    "api_id": "claude-3-haiku-20240307",
+    "release_date": "2024-03-04",
+    "context_tokens": 200000,
+    "notes": "Small/fast model in 3-family."
+  },
+  {
+    "generation": "Claude 3",
+    "variant": "Sonnet 3",
+    "api_id": "claude-3-sonnet-20240307",
+    "release_date": "2024-03-04",
+    "context_tokens": 200000,
+    "notes": "Mid-tier model in 3-family."
+  },
+  {
+    "generation": "Claude 3",
+    "variant": "Opus 3",
+    "api_id": "claude-3-opus-20240307",
+    "release_date": "2024-03-04",
+    "context_tokens": 200000,
+    "notes": "Largest 3-family model."
+  },
+  {
+    "generation": "Claude 3.5",
+    "variant": "Sonnet 3.5",
+    "api_id": null,
+    "release_date": "2024-06-21",
+    "context_tokens": 200000,
+    "notes": "First 3.5-family model; faster than Opus 3; introduced Artifacts."
+  },
+  {
+    "generation": "Claude 3.5",
+    "variant": "Haiku 3.5",
+    "api_id": "claude-3-5-haiku-20241022",
+    "release_date": "2024-10-22",
+    "context_tokens": 200000,
+    "notes": "Added alongside computer use; pricing updated Dec 2024."
+  },
+  {
+    "generation": "Claude 3.7",
+    "variant": "Sonnet 3.7",
+    "api_id": "claude-3-7-sonnet-20250219",
+    "release_date": "2025-02-24",
+    "context_tokens": 200000,
+    "notes": "Hybrid reasoning / extended thinking preview; later marked legacy."
+  },
+  {
+    "generation": "Claude 4",
+    "variant": "Sonnet 4.0",
+    "api_id": "claude-sonnet-4-20250514",
+    "release_date": "2025-05-22",
+    "context_tokens": 200000,
+    "notes": "New generation focused on coding/agents."
+  },
+  {
+    "generation": "Claude 4",
+    "variant": "Opus 4.0",
+    "api_id": "claude-opus-4-20250514",
+    "release_date": "2025-05-22",
+    "context_tokens": 200000,
+    "notes": "Highest-capability 4.0 at launch."
+  },
+  {
+    "generation": "Claude 4",
+    "variant": "Opus 4.1",
+    "api_id": "claude-opus-4-1-20250805",
+    "release_date": "2025-08-05",
+    "context_tokens": 200000,
+    "notes": "Iteration emphasizing specialized reasoning; pricing listed in docs."
+  },
+  {
+    "generation": "Claude 4.5",
+    "variant": "Sonnet 4.5",
+    "api_id": "claude-sonnet-4-5-20250929",
+    "release_date": "2025-09-29",
+    "context_tokens": 1000000,
+    "notes": "General-purpose default; extended thinking; top coding/agentic performance."
+  },
+  {
+    "generation": "Claude 4.5",
+    "variant": "Haiku 4.5",
+    "api_id": "claude-haiku-4-5-20251001",
+    "release_date": "2025-10-15",
+    "context_tokens": 200000,
+    "notes": "Small/fast tier for 4.5 generation (public post Oct 2025)."
+  }
+]

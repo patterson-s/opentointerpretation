@@ -19,7 +19,7 @@ import requests
 
 HF_API = "https://huggingface.co/api/models/"
 HTTP_TIMEOUT = 20
-UA = {"User-Agent": "opentointerpretation-license-bot/2.0"}
+UA = {"User-Agent": "opentointerpretation-license-bot/2.1"}
 
 LICENSE_SLUG_MAP = {
     # Common normalizations
@@ -61,6 +61,22 @@ LICENSE_FINGERPRINTS = [
     (re.compile(r"\bcc[-\s]*by[-\s]*4\.0\b", re.I), "cc-by-4.0"),
 ]
 
+# --- Vendor mapping for "other" ---
+VENDOR_URL_TO_SLUG = [
+    (re.compile(r"(?:^|//)(?:www\.)?nvidia\.com|developer\.nvidia\.com", re.I), "proprietary:nvidia-aiml"),
+    (re.compile(r"(?:^|//)(?:www\.)?stability\.ai|stability\.ai/.*/license", re.I), "proprietary:stability-terms"),
+    (re.compile(r"(?:^|//)(?:www\.)?microsoft\.com|aka\.ms/", re.I), "proprietary:microsoft-research"),
+    (re.compile(r"(?:^|//)(?:www\.)?openai\.com", re.I), "proprietary:openai-terms"),
+    (re.compile(r"(?:^|//)(?:www\.)?anthropic\.com", re.I), "proprietary:anthropic-terms"),
+    (re.compile(r"(?:^|//)(?:www\.)?x\.com|(?:^|//)(?:www\.)?xai\.com", re.I), "proprietary:xai-terms"),
+    (re.compile(r"(?:^|//)(?:www\.)?google\.com|ai\.google|deepmind\.com", re.I), "proprietary:google-ai-terms"),
+]
+
+OTHER_KEYWORDS = re.compile(
+    r"\b(license|model\s*license|terms\s*of\s*use|terms|policy|eula|acceptable\s*use)\b",
+    re.I,
+)
+
 # ---------- Utilities ----------
 
 def normalize_license(s: Optional[str]) -> Optional[str]:
@@ -99,7 +115,7 @@ def get(repo_id: str, url: str, **kw) -> requests.Response:
     return requests.get(url, timeout=HTTP_TIMEOUT, headers=UA, **kw)
 
 
-# ---------- Extractors ----------
+# ---------- Extractors (existing) ----------
 
 def license_from_api(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
     try:
@@ -128,32 +144,21 @@ def license_from_api(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
             if m:
                 return normalize_license(m.group(1)), None
         # 5) look for LICENSE sibling
-        siblings = data.get("siblings") or []
-        for sib in siblings:
-            name = sib.get("rfilename") or ""
-            if name.upper() in {"LICENSE", "LICENSE.TXT"}:
-                # fingerprint below (fallback 5 handles download)
-                pass
+        # (download/fingerprint handled in fallback)
         return None, "API miss"
     except Exception as e:
         return None, f"API error: {e}"
 
 
 def license_from_static_html(repo_url: str) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Parse server-rendered HTML for 'License:' chip or /licenses/<slug> link.
-    (Works when HF still emits those in SSR; may miss for JS-only pages.)
-    """
     try:
         r = get(repo_url, repo_url)
         if r.status_code != 200:
             return None, f"scrape {r.status_code}"
         html_text = r.text
-        # Heuristic 1: "License:" followed by a badge-like span/a nearby
         m = re.search(r">License:\s*</[^>]+>\s*([^<]+)<", html_text, re.I)
         if m:
             return normalize_license(html.unescape(m.group(1)).strip()), None
-        # Heuristic 2: /licenses/<slug> anchor
         m = re.search(r'href="/licenses/([^"?/#\s]+)"', html_text, re.I)
         if m:
             return normalize_license(m.group(1)), None
@@ -163,18 +168,11 @@ def license_from_static_html(repo_url: str) -> Tuple[Optional[str], Optional[str
 
 
 def license_from_hydration_json(repo_url: str) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Parse preloaded JSON from a <script> tag used to hydrate the React app.
-    We search for a JSON substring that contains `"cardData"` and `"license"`.
-    """
     try:
         r = get(repo_url, repo_url)
         if r.status_code != 200:
             return None, f"hydrate {r.status_code}"
         html_text = r.text
-        # Extract the biggest JSON-like blob that contains "cardData"
-        # Then find "license":"..."
-        # Keep it regex-based to avoid strict JSON parsing on huge blobs.
         block = None
         for m in re.finditer(r"<script[^>]*>(.*?)</script>", html_text, re.S | re.I):
             s = m.group(1)
@@ -192,10 +190,6 @@ def license_from_hydration_json(repo_url: str) -> Tuple[Optional[str], Optional[
 
 
 def _readme_front_matter(text: str) -> Dict[str, str]:
-    """
-    Parse very simple YAML front-matter: key: value lines between first two ---.
-    Avoid PyYAML dependency; we only need 'license:'.
-    """
     m = re.match(r"\s*---\s*\r?\n(.*?)\r?\n---\s*\r?\n", text, re.S)
     if not m:
         return {}
@@ -209,9 +203,6 @@ def _readme_front_matter(text: str) -> Dict[str, str]:
 
 
 def license_from_raw_readme(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Fetch https://huggingface.co/<repo>/raw/README.md and parse YAML front-matter.
-    """
     url = f"https://huggingface.co/{repo_id}/raw/README.md"
     try:
         r = get(repo_id, url)
@@ -227,9 +218,6 @@ def license_from_raw_readme(repo_id: str) -> Tuple[Optional[str], Optional[str]]
 
 
 def license_from_license_file(repo_id: str) -> Tuple[Optional[str], Optional[str]]:
-    """
-    Use the API to list siblings, fetch LICENSE if present, then fingerprint text.
-    """
     try:
         r = get(repo_id, HF_API + repo_id)
         if r.status_code != 200:
@@ -254,6 +242,155 @@ def license_from_license_file(repo_id: str) -> Tuple[Optional[str], Optional[str
         return None, "licensefile miss: unknown license text"
     except Exception as e:
         return None, f"licensefile error: {e}"
+
+
+# ---------- “other” resolution helpers ----------
+
+def _extract_markdown_links(text: str) -> List[Tuple[str, str]]:
+    # [(link_text, link_url)]
+    links = []
+    for m in re.finditer(r"\[([^\]]+)\]\(([^\s)]+)\)", text):
+        links.append((m.group(1), m.group(2)))
+    return links
+
+
+def _score_link(text: str, url: str) -> int:
+    score = 0
+    if OTHER_KEYWORDS.search(text or ""):
+        score += 40
+    if OTHER_KEYWORDS.search(url or ""):
+        score += 40
+    # prefer vendor domains we know
+    for rx, _slug in VENDOR_URL_TO_SLUG:
+        if rx.search(url or ""):
+            score += 20
+    return score
+
+
+def _map_vendor_slug(url: str) -> Optional[str]:
+    for rx, slug in VENDOR_URL_TO_SLUG:
+        if rx.search(url or ""):
+            return slug
+    return None
+
+
+def readme_body_candidates(repo_id: str) -> List[Tuple[str, str, int]]:
+    """Return [(name, url, score)] from README body (not just front-matter)."""
+    url = f"https://huggingface.co/{repo_id}/raw/README.md"
+    try:
+        r = get(repo_id, url)
+        if r.status_code != 200:
+            return []
+        text = r.text or ""
+        links = _extract_markdown_links(text)
+        cands = []
+        for name, href in links:
+            s = _score_link(name, href)
+            if s > 0:
+                cands.append((name.strip(), href.strip(), s))
+        # also scan plain URLs near 'license/terms' keywords
+        for m in re.finditer(r"(https?://[^\s)]+)", text):
+            href = m.group(1)
+            # look back/forward 120 chars for keywords
+            start = max(0, m.start() - 120)
+            end = min(len(text), m.end() + 120)
+            window = text[start:end]
+            s = _score_link(window, href)
+            if s > 0:
+                cands.append(("(inline)", href.strip(), s))
+        return sorted(cands, key=lambda x: x[2], reverse=True)
+    except Exception:
+        return []
+
+
+def hydration_url_candidates(repo_url: str) -> List[Tuple[str, int]]:
+    """Return [(url, score)] from hydration scripts on the HTML page."""
+    try:
+        r = get(repo_url, repo_url)
+        if r.status_code != 200:
+            return []
+        html_text = r.text or ""
+        urls = set(re.findall(r"https?://[^\s\"'<>)]+", html_text))
+        cands = []
+        for href in urls:
+            s = _score_link(href, href)
+            if s > 0:
+                cands.append((href.strip(), s))
+        return sorted(cands, key=lambda x: x[1], reverse=True)
+    except Exception:
+        return []
+
+
+def sibling_terms_candidates(repo_id: str) -> List[Tuple[str, str, int]]:
+    """
+    Look for TERMS / EULA / MODEL_LICENSE type files at repo root and return synthetic
+    links using the raw URL.
+    """
+    try:
+        r = get(repo_id, HF_API + repo_id)
+        if r.status_code != 200:
+            return []
+        siblings = (r.json() or {}).get("siblings") or []
+        targets = []
+        for sib in siblings:
+            name = (sib.get("rfilename") or "").strip()
+            upper = name.upper()
+            if upper in {"TERMS.md", "TERMS.txt", "TERMS", "EULA.md", "EULA.txt", "MODEL_LICENSE", "MODEL_LICENSE.md"}:
+                raw = f"https://huggingface.co/{repo_id}/resolve/main/{name}"
+                targets.append((name, raw))
+        cands = []
+        for name, href in targets:
+            s = _score_link(name, href) + 15  # small boost for explicit file
+            cands.append((name, href, s))
+        return sorted(cands, key=lambda x: x[2], reverse=True)
+    except Exception:
+        return []
+
+
+@dataclass
+class OtherOutcome:
+    license_slug: Optional[str]
+    license_name: Optional[str]
+    license_url: Optional[str]
+    license_family: Optional[str]
+    license_confidence: int
+    note: str
+
+
+def resolve_other_license(repo_id: str, repo_url: str) -> OtherOutcome:
+    """
+    Try to turn 'other' into a named proprietary license by harvesting a (name, url)
+    and mapping to a vendor slug. Non-fatal; returns best-effort metadata.
+    """
+    # Aggregate candidates
+    cands: List[Tuple[str, str, int, str]] = []  # (name, url, score, source)
+    for name, href, s in readme_body_candidates(repo_id):
+        cands.append((name, href, s, "readme_link"))
+    for href, s in hydration_url_candidates(repo_url):
+        cands.append(("", href, s, "hydrate_link"))
+    for name, href, s in sibling_terms_candidates(repo_id):
+        cands.append((name, href, s, "terms_file"))
+
+    if not cands:
+        return OtherOutcome(None, None, None, None, 0, "no-candidates")
+
+    # Top candidate
+    name, href, score, source = sorted(cands, key=lambda x: x[2], reverse=True)[0]
+    vendor = _map_vendor_slug(href)
+    fam = "proprietary" if vendor or score >= 40 else None
+
+    # Try to derive a readable name from link text or filename
+    derived_name = name or Path(href.split("?")[0].split("#")[0]).name.replace("-", " ")
+    derived_name = derived_name.strip() if derived_name else None
+
+    return OtherOutcome(
+        license_slug=vendor,
+        license_name=derived_name,
+        license_url=href,
+        license_family=fam,
+        license_confidence=min(100, score),
+        note=source,
+    )
 
 
 # ---------- Processing ----------
@@ -285,10 +422,7 @@ def resolve_license(repo_id: str, repo_url: str) -> Outcome:
     lic, note5 = license_from_license_file(repo_id)
     if lic:
         return Outcome(lic, "licensefile")
-    # Construct combined note
-    reasons = "; ".join(
-        r for r in [note, note2, note3, note4, note5] if r
-    ) or "unknown"
+    reasons = "; ".join(r for r in [note, note2, note3, note4, note5] if r) or "unknown"
     return Outcome(None, reasons)
 
 
@@ -296,6 +430,8 @@ def enrich(records: List[Dict], interval: int = 100, verbose: bool = True
            ) -> Tuple[List[Dict], List[str]]:
     """
     For each record, if 'license' is missing/empty, attempt to resolve it.
+    Additionally, for records with license == "other", attempt to enrich it
+    with concrete proprietary metadata (and possibly promote the slug).
     Returns (enriched_records, misses_list)
     """
     out: List[Dict] = []
@@ -311,27 +447,46 @@ def enrich(records: List[Dict], interval: int = 100, verbose: bool = True
             misses.append(f"[{i}] <missing repo_id/url> (skip)")
             continue
 
-        current = (rec.get("license") or "").strip()
-        if current:
-            out.append(rec)
-            if verbose and i % interval == 0:
-                print(f"[{i}] {repo_id}: already has license ({current})")
-            continue
+        current = (rec.get("license") or "").strip() if rec.get("license") is not None else ""
+        updated = dict(rec)
 
-        oc = resolve_license(repo_id, url)
-        if oc.license:
-            newrec = dict(rec)
-            newrec["license"] = oc.license
-            newrec["_license_source"] = oc.note  # provenance for debugging
-            out.append(newrec)
-            if verbose:
-                print(f"[{i}] {repo_id}: {oc.license} ({oc.note})")
+        if not current:
+            oc = resolve_license(repo_id, url)
+            if oc.license:
+                updated["license"] = oc.license
+                updated["_license_source"] = oc.note
+            else:
+                misses.append(f"[{i}] {repo_id} ({oc.note})")
+                if verbose:
+                    print(f"[{i}] {repo_id}: MISS -> {oc.note}")
         else:
-            out.append(rec)
-            entry = f"[{i}] {repo_id} ({oc.note})"
-            misses.append(entry)
-            if verbose:
-                print(f"[{i}] {repo_id}: MISS -> {oc.note}")
+            # already has a license — leave as-is
+            updated["_license_source"] = updated.get("_license_source") or "input"
+
+        # SPECIAL: try to refine "other"
+        if (updated.get("license") or "").strip().lower() == "other":
+            other = resolve_other_license(repo_id, url)
+            if other.license_name:
+                updated["license_name"] = other.license_name
+            if other.license_url:
+                updated["license_url"] = other.license_url
+            if other.license_family:
+                updated["license_family"] = other.license_family
+            updated["license_confidence"] = other.license_confidence
+            updated["_license_source_other"] = other.note
+
+            # If we have a strong vendor mapping, promote the slug
+            if other.license_slug:
+                updated["license_raw"] = "other"
+                updated["license"] = other.license_slug
+                updated["_license_source"] = f"{updated.get('_license_source','')};other-promoted".strip(";")
+
+            if verbose and i % max(1, interval) == 0:
+                print(f"[{i}] {repo_id}: OTHER ⇒ "
+                      f"{updated.get('license')} "
+                      f"({other.license_name or ''} @ {other.license_url or ''}; score {other.license_confidence})")
+
+        out.append(updated)
 
         # checkpoint
         if (i + 1) % interval == 0:
@@ -343,7 +498,7 @@ def enrich(records: List[Dict], interval: int = 100, verbose: bool = True
 # ---------- CLI ----------
 
 def main():
-    ap = argparse.ArgumentParser(description="Enrich HF licenses with robust fallbacks.")
+    ap = argparse.ArgumentParser(description="Enrich HF licenses with robust fallbacks (+ 'other' resolver).")
     ap.add_argument("input", help="Path to input JSON array")
     ap.add_argument("output", help="Path to write enriched JSON")
     ap.add_argument("--interval", type=int, default=100, help="Checkpoint interval (default 100)")
@@ -356,7 +511,8 @@ def main():
     records = load_json(in_path)
     print(f"Loaded {len(records)} records from: {in_path}")
     print(f"Writing to: {out_path}")
-    print("HTML fallback: ENABLED (static + hydration + README + LICENSE)")
+    print("Fallbacks: API + static HTML + hydration + README front-matter + LICENSE fingerprint")
+    print("PLUS: 'other' resolver (README links + hydration URLs + terms files)")
 
     try:
         last_out, last_miss = None, None
