@@ -88,3 +88,28 @@ Both `hf_full.py` and `hf_pipeline.py` define `ORG_HANDLES` / `DEFAULT_ORG_HANDL
 - Standard open: `apache-2.0`, `mit`, `cc-by-4.0`, `cc-by-nc-4.0`
 - Everything else → `bespoke` (company-specific or custom)
 - Org-specific corrections: DeepSeek `other` → `mit`; xAI `null` → `bespoke`
+
+## Database
+
+PostgreSQL database `opentointerpretation` (local, `postgres` user, no password). Connection via `.env` + `python-dotenv`.
+
+### Additional dependencies
+```bash
+pip install psycopg2-binary python-dotenv
+```
+
+### Schema (db/schema.sql)
+Three tables: `companies` → `models` ← `licenses`
+- `companies`: one row per org (`display_name`, `hf_handle`, `country_hq`)
+- `licenses`: one row per license slug, with enrichable `family`/`is_osi_approved`/`notes` columns
+- `models`: one row per model release; `company_id` and `license_id` are nullable FKs; `metadata JSONB` column is the extension point for new fields; `data_source` distinguishes `'huggingface'` from `'openai'`/`'anthropic'`/`'google'`
+
+### ETL (db/ingest.py)
+Ingests in FK-dependency order: companies → licenses → HF models → closed-source models. Uses `ON CONFLICT (model_id) DO NOTHING` for idempotency.
+
+```bash
+python db/ingest.py --sample   # insert first 5 records per source, print rows
+python db/ingest.py            # full ingestion (4,258 records total)
+```
+
+Current counts: 24 companies, 32 licenses, 4,258 models (4,210 HF + 48 closed-source).

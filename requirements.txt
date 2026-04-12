@@ -1,8 +1,12 @@
 huggingface_hub
-beautifulsoup4 
-requests 
+beautifulsoup4
+requests
 lxml
 jupyter
 ipykernel
 matplotlib
 pandas
+fastapi
+uvicorn[standard]
+psycopg2-binary
+python-dotenv

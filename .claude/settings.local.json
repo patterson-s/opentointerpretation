@@ -3,7 +3,11 @@
     "allow": [
       "Bash(python3:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(uvicorn api.app:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/companies)",
+      "Bash(curl -s http://localhost:8000/api/companies/1)",
+      "Bash(curl -s http://localhost:8000/)"
     ]
   }
 }

@@ -1,18 +1,16 @@
 # Instructions
 
-Our goal is to build a postgresql db for the opentointerpretation project. 
+Our goal is to build an api for the db that we just built and a web interface to explore. 
 
-Data is collected at the following levels: 
-- company
-- model
-- licence
+Adopt the general style that we have been using for web interfaces. 
 
-Models are affiliated with companies. Licences are affiliated with models. 
+For now, I'm primarily interetsed in seeing the data in terms of companies. 
 
-We can add descriptive data for each of these elements. 
+There should be a "company" section on the website. When I open it, I want to be able to select a company. THen, I want to see all of the data that we have on them. 
+- country hq
+- number of model cards
+- distribution of licenses by type
 
-We need to build the db in a way that is modular and enables addition of features. 
-
-For guidance on db constructions, consult with
-- memories of building a db
-- this skill : "C:\Users\spatt\.vibe\skills\build-postgres-db\SKILL.md"
+Build the site in a way that allows for future
+- additions of elements to the company viewer
+- other viewer options, i.e. model, country

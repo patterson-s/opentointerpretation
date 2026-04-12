@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open to Interpretation</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- Top nav -->
+  <header>
+    <span class="site-title">Open to Interpretation</span>
+    <nav>
+      <a href="#companies" class="nav-link">Companies</a>
+      <a href="#models"    class="nav-link">Models</a>
+      <a href="#countries" class="nav-link">Countries</a>
+    </nav>
+  </header>
+
+  <!-- Main content -->
+  <main>
+
+    <!-- Companies section -->
+    <section id="section-companies" class="section">
+      <!-- Left: company list -->
+      <div class="company-list-panel">
+        <div class="panel-header">Companies</div>
+        <div class="search-wrap">
+          <input id="company-search" type="text" placeholder="Filter..." autocomplete="off" />
+        </div>
+        <ul class="company-list" id="company-list"></ul>
+      </div>
+
+      <!-- Right: company detail -->
+      <div class="company-detail-panel" id="company-detail">
+        <div class="detail-empty">Select a company to view details</div>
+      </div>
+    </section>
+
+    <!-- Models section (coming soon) -->
+    <section id="section-models" class="section">
+      <div class="placeholder">
+        <span class="placeholder-label">Models viewer</span>
+        <span>Coming soon</span>
+      </div>
+    </section>
+
+    <!-- Countries section (coming soon) -->
+    <section id="section-countries" class="section">
+      <div class="placeholder">
+        <span class="placeholder-label">Countries viewer</span>
+        <span>Coming soon</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
