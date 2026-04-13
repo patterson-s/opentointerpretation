@@ -25,7 +25,24 @@
       "Bash(curl -s \"http://localhost:8000/api/companies\")",
       "Bash(curl -s -v \"http://localhost:8000/api/licenses\")",
       "Bash(uvicorn api.app:app --port 8001)",
-      "Bash(curl -s http://localhost:8001/api/licenses)"
+      "Bash(curl -s http://localhost:8001/api/licenses)",
+      "Bash(uvicorn api.app:app --port 8080)",
+      "Bash(curl -s http://localhost:8080/api/models/filters)",
+      "Bash(curl -s \"http://localhost:8080/api/models?limit=3&offset=0\")",
+      "Bash(curl -s \"http://localhost:8080/api/models?country_hq=USA&modality=text&limit=2\")",
+      "Bash(curl -s \"http://localhost:8080/api/models/01-ai/Yi-1.5-34B\")",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(wc:*)",
+      "Bash(shuf)",
+      "Bash(curl -s http://localhost:8080/api/companies)",
+      "Bash(node:*)",
+      "Bash(curl -s http://localhost:8080/api/companies/1/models?limit=5)",
+      "Bash(curl -s \"http://localhost:8080/api/models?company_id=1&limit=5\")",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(curl -s http://localhost:8080/api/research/map)",
+      "Bash(uvicorn api.app:app --port 8080 --reload)"
     ]
   }
 }

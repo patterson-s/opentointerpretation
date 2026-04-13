@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Open to Interpretation</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
 </head>
 <body>
 <div id="app">
@@ -18,7 +19,7 @@
       <a href="#countries" class="nav-link">Countries</a>
       <a href="#licenses"  class="nav-link">Licenses</a>
       <a href="#analysis"  class="nav-link">Analysis</a>
-      <a href="#historical" class="nav-link">Historical</a>
+      <a href="#map"       class="nav-link">Map</a>
     </nav>
   </header>
 
@@ -42,11 +43,87 @@
       </div>
     </section>
 
-    <!-- Models section (coming soon) -->
+    <!-- Models section -->
     <section id="section-models" class="section">
-      <div class="placeholder">
-        <span class="placeholder-label">Models viewer</span>
-        <span>Coming soon</span>
+
+      <!-- Left: filter sidebar -->
+      <div class="company-list-panel models-filter-panel">
+        <div class="panel-header">Filters</div>
+        <div class="models-filters">
+          <div class="filter-group">
+            <label class="filter-label">Company</label>
+            <select id="models-filter-company" class="filter-select">
+              <option value="">All companies</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">License</label>
+            <select id="models-filter-license" class="filter-select">
+              <option value="">All licenses</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Country</label>
+            <select id="models-filter-country" class="filter-select">
+              <option value="">All countries</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Source</label>
+            <select id="models-filter-source" class="filter-select">
+              <option value="">All sources</option>
+              <option value="huggingface">HuggingFace</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="google">Google</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Modality</label>
+            <select id="models-filter-modality" class="filter-select">
+              <option value="">All modalities</option>
+            </select>
+          </div>
+          <button id="models-clear-filters" class="clear-filters-btn">Clear filters</button>
+        </div>
+        <div class="models-result-count" id="models-result-count"></div>
+      </div>
+
+      <!-- Right: table view + detail view (toggled) -->
+      <div class="models-main-panel" id="models-main-panel">
+
+        <!-- Table view (default) -->
+        <div id="models-table-view">
+          <div class="models-table-wrap">
+            <table class="models-table">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Company</th>
+                  <th>License</th>
+                  <th>Modality</th>
+                  <th>Params (B)</th>
+                  <th>Released</th>
+                  <th>Downloads</th>
+                  <th>Likes</th>
+                </tr>
+              </thead>
+              <tbody id="models-tbody">
+                <tr><td colspan="8" class="models-loading">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="models-pagination" id="models-pagination"></div>
+        </div>
+
+        <!-- Detail view (shown on row click) -->
+        <div id="models-detail-view" style="display:none">
+          <div class="models-detail-header">
+            <button id="models-back-btn" class="models-back-btn">← Back to list</button>
+          </div>
+          <div id="models-detail-content" class="models-detail-content"></div>
+        </div>
+
       </div>
     </section>
 
@@ -60,49 +137,54 @@
 
     <!-- Analysis section -->
     <section id="section-analysis" class="section">
-      <div class="analysis-container">
-        <div class="analysis-nav">
-          <div class="analysis-nav-header">Analysis Metrics</div>
-          <ul class="analysis-metrics-list">
-            <li class="analysis-metric-item active" data-metric="model-releases-by-country">
-              Model Releases by Country
-            </li>
-            <li class="analysis-metric-item" data-metric="model-releases-by-company">
-              Model Releases by Company
-            </li>
-          </ul>
-        </div>
-        <div class="analysis-content" id="analysis-content">
-          <div class="analysis-placeholder">
-            Select an analysis metric from the menu
+
+      <!-- Sub-tab bar -->
+      <div class="analysis-subtab-bar">
+        <button class="analysis-subtab active" data-subtab="snapshot">Snapshot</button>
+        <button class="analysis-subtab" data-subtab="historical">Historical</button>
+      </div>
+
+      <!-- Snapshot sub-panel (original analysis content) -->
+      <div class="analysis-subpanel active" id="analysis-subpanel-snapshot">
+        <div class="analysis-container">
+          <div class="analysis-nav">
+            <div class="analysis-nav-header">Analysis Metrics</div>
+            <ul class="analysis-metrics-list">
+              <li class="analysis-metric-item active" data-metric="model-releases-by-country">Model Releases by Country</li>
+              <li class="analysis-metric-item" data-metric="model-releases-by-company">Model Releases by Company</li>
+            </ul>
+          </div>
+          <div class="analysis-content" id="analysis-content">
+            <div class="analysis-placeholder">Select an analysis metric from the menu</div>
+          </div>
+          <div class="analysis-notes">
+            <div class="notes-header">Notes</div>
+            <textarea id="analysis-notes" placeholder="Take notes here..."></textarea>
           </div>
         </div>
-        <div class="analysis-notes">
-          <div class="notes-header">Notes</div>
-          <textarea id="analysis-notes" placeholder="Take notes here..."></textarea>
-        </div>
       </div>
-    </section>
 
-    <!-- Historical section -->
-    <section id="section-historical" class="section">
-      <div class="analysis-container">
-        <div class="analysis-nav">
-          <div class="analysis-nav-header">View</div>
-          <ul class="analysis-metrics-list" id="historical-metrics-list">
-            <li class="analysis-metric-item active" data-metric="historical-total">Total</li>
-            <li class="analysis-metric-item" data-metric="historical-by-company">By Company</li>
-            <li class="analysis-metric-item" data-metric="historical-by-country">By Country</li>
-          </ul>
-        </div>
-        <div class="analysis-content" id="historical-content">
-          <div class="analysis-placeholder">Select a view from the menu</div>
-        </div>
-        <div class="analysis-notes">
-          <div class="notes-header">Notes</div>
-          <textarea id="historical-notes" placeholder="Take notes here..."></textarea>
+      <!-- Historical sub-panel (original historical content) -->
+      <div class="analysis-subpanel" id="analysis-subpanel-historical">
+        <div class="analysis-container">
+          <div class="analysis-nav">
+            <div class="analysis-nav-header">View</div>
+            <ul class="analysis-metrics-list" id="historical-metrics-list">
+              <li class="analysis-metric-item active" data-metric="historical-total">Total</li>
+              <li class="analysis-metric-item" data-metric="historical-by-company">By Company</li>
+              <li class="analysis-metric-item" data-metric="historical-by-country">By Country</li>
+            </ul>
+          </div>
+          <div class="analysis-content" id="historical-content">
+            <div class="analysis-placeholder">Select a view from the menu</div>
+          </div>
+          <div class="analysis-notes">
+            <div class="notes-header">Notes</div>
+            <textarea id="historical-notes" placeholder="Take notes here..."></textarea>
+          </div>
         </div>
       </div>
+
     </section>
 
     <!-- Licenses section -->
@@ -122,11 +204,32 @@
       </div>
     </section>
 
+    <!-- Map section -->
+    <section id="section-map" class="section">
+      <div id="map-sidebar" class="map-sidebar">
+        <div class="panel-header">Toggle</div>
+        <div class="map-toggle-group">
+          <div class="map-toggle-label">Companies</div>
+          <div id="map-company-toggles"></div>
+        </div>
+        <div class="map-toggle-group">
+          <div class="map-toggle-label">Countries</div>
+          <div id="map-country-toggles"></div>
+        </div>
+      </div>
+      <div id="map-container">
+        <div id="map"></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- Leaflet + plugins -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
