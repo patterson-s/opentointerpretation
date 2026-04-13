@@ -259,6 +259,133 @@ main {
   max-width: 600px;
 }
 
+/* ── Analysis section ───────────────────────────────────────────────────────── */
+.analysis-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* Debug: make analysis section visible */
+#section-analysis {
+  border: 2px solid red; /* Temporary debug border */
+}
+
+.analysis-nav {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--gray-200);
+  overflow: hidden;
+}
+
+.analysis-nav-header {
+  padding: .75rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+
+.analysis-metrics-list {
+  flex: 1;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.analysis-metric-item {
+  padding: .55rem 1rem;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-800);
+  border-bottom: 1px solid var(--gray-100);
+  transition: background .1s;
+}
+
+.analysis-metric-item:hover {
+  background: var(--gray-50);
+}
+
+.analysis-metric-item.active {
+  background: var(--accent-lt);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.analysis-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+}
+
+.analysis-notes {
+  border-top: 1px solid var(--gray-200);
+  padding: 1rem 2rem;
+  background: var(--gray-50);
+}
+
+.notes-header {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gray-400);
+  margin-bottom: .5rem;
+}
+
+#analysis-notes {
+  width: 100%;
+  min-height: 100px;
+  padding: .75rem 1rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  resize: vertical;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+#analysis-notes:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.analysis-placeholder,
+.analysis-loading,
+.analysis-error {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  font-size: 13px;
+}
+
+.analysis-loading {
+  color: var(--accent);
+}
+
+.analysis-error {
+  color: #ef4444;
+}
+
+.analysis-chart-wrap {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
 /* ── Scrollbar tweaks ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -7,7 +7,14 @@
       "Bash(uvicorn api.app:app --reload --port 8000)",
       "Bash(curl -s http://localhost:8000/api/companies)",
       "Bash(curl -s http://localhost:8000/api/companies/1)",
-      "Bash(curl -s http://localhost:8000/)"
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(xargs grep:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)",
+      "Bash(grep:*)",
+      "Bash(curl -s http://localhost:8000/api/analysis/historical-total)",
+      "Bash(curl -s http://localhost:8000/api/analysis/historical-by-company)",
+      "Bash(curl -s http://localhost:8000/api/analysis/historical-by-country)"
     ]
   }
 }

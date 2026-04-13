@@ -1,16 +1,22 @@
-# Instructions
+# Model Characteristics
 
-Our goal is to build an api for the db that we just built and a web interface to explore. 
+We have a database that contains several different schemas for data. 
 
-Adopt the general style that we have been using for web interfaces. 
+Our goal is to bolster the data that we have for "models"
 
-For now, I'm primarily interetsed in seeing the data in terms of companies. 
+I collected the "models" data from automated interactions with hugging face model card pages. These pages are structured and have consistent data across multiple fields. However, it is not entirely consistent. 
 
-There should be a "company" section on the website. When I open it, I want to be able to select a company. THen, I want to see all of the data that we have on them. 
-- country hq
-- number of model cards
-- distribution of licenses by type
+I am interested in gathering more data on the specific models. I'm not sure exactly what we have already and what we could theoretically gather. 
 
-Build the site in a way that allows for future
-- additions of elements to the company viewer
-- other viewer options, i.e. model, country
+Some ideas: 
+- release date
+- model size
+- modality (as in, text, audio, multimodal, vision, etc.)
+- usage/download metrics
+
+Your job is to do some research on what additional information we can gather at the level of "model". 
+
+First, review the repository to understand how we gathered this information. 
+
+Second, examine several model card pages from different companies and models. See what else we might get. 
+

@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.routers import companies
+from api.routers import companies, analysis
 
 app = FastAPI(
     title="Open to Interpretation API",
@@ -31,6 +31,7 @@ app.add_middleware(
 
 # API routers
 app.include_router(companies.router)
+app.include_router(analysis.router)
 
 # Serve the web frontend — mount AFTER API routes so /api/* takes priority
 _WEB_DIR = Path(__file__).resolve().parent.parent / "web"

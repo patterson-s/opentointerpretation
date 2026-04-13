@@ -18,13 +18,14 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+from datetime import date
 
 load_dotenv(override=True)  # override=True required on Windows
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BASE = Path(__file__).resolve().parent.parent
 
-HF_FILE    = BASE / "huggingface" / "hf_6jan2026.json"
+HF_FILE    = BASE / "huggingface" / "hf_6jan2026_meta.json"
 OPENAI_FILE  = BASE / "closed" / "openai_gpt_version_history.json"
 CLAUDE_FILE  = BASE / "closed" / "claude_version_history.json"
 GEMINI_FILE  = BASE / "closed" / "gemini_version_history.json"
@@ -44,6 +45,19 @@ def safe_int(val: Any) -> int | None:
     try:
         return int(val)
     except (TypeError, ValueError):
+        return None
+
+
+def safe_date(val: Any) -> date | None:
+    """Parse an ISO 8601 string (e.g. '2023-09-27T16:25:27.000Z') to a date."""
+    if not val:
+        return None
+    s = str(val).strip()
+    # Take only the date portion
+    date_part = s[:10]
+    try:
+        return date.fromisoformat(date_part)
+    except ValueError:
         return None
 
 
@@ -145,11 +159,20 @@ def ingest_hf(
             lic_slug = safe_str(rec.get("license"))
             license_id = get_or_create_license(cur, lic_slug, license_cache) if lic_slug else None
 
+            # Build metadata JSONB from enriched fields (if present)
+            meta_keys = (
+                "pipeline_tag", "modality", "num_parameters", "last_modified",
+                "library_name", "gated", "language", "architectures",
+                "model_type", "tags",
+            )
+            metadata = {k: rec[k] for k in meta_keys if k in rec and rec[k] is not None}
+
             cur.execute(
                 """
                 INSERT INTO models
-                    (company_id, license_id, model_id, url, data_source, likes, downloads)
-                VALUES (%s, %s, %s, %s, 'huggingface', %s, %s)
+                    (company_id, license_id, model_id, url, data_source,
+                     likes, downloads, release_date, metadata)
+                VALUES (%s, %s, %s, %s, 'huggingface', %s, %s, %s, %s)
                 ON CONFLICT (model_id) DO NOTHING
                 """,
                 (
@@ -159,6 +182,8 @@ def ingest_hf(
                     safe_str(rec.get("url")),
                     safe_int(rec.get("likes")),
                     safe_int(rec.get("downloads")),
+                    safe_date(rec.get("release_date")),
+                    psycopg2.extras.Json(metadata) if metadata else None,
                 ),
             )
             inserted += 1

@@ -16,6 +16,8 @@
       <a href="#companies" class="nav-link">Companies</a>
       <a href="#models"    class="nav-link">Models</a>
       <a href="#countries" class="nav-link">Countries</a>
+      <a href="#analysis"  class="nav-link">Analysis</a>
+      <a href="#historical" class="nav-link">Historical</a>
     </nav>
   </header>
 
@@ -52,6 +54,53 @@
       <div class="placeholder">
         <span class="placeholder-label">Countries viewer</span>
         <span>Coming soon</span>
+      </div>
+    </section>
+
+    <!-- Analysis section -->
+    <section id="section-analysis" class="section">
+      <div class="analysis-container">
+        <div class="analysis-nav">
+          <div class="analysis-nav-header">Analysis Metrics</div>
+          <ul class="analysis-metrics-list">
+            <li class="analysis-metric-item active" data-metric="model-releases-by-country">
+              Model Releases by Country
+            </li>
+            <li class="analysis-metric-item" data-metric="model-releases-by-company">
+              Model Releases by Company
+            </li>
+          </ul>
+        </div>
+        <div class="analysis-content" id="analysis-content">
+          <div class="analysis-placeholder">
+            Select an analysis metric from the menu
+          </div>
+        </div>
+        <div class="analysis-notes">
+          <div class="notes-header">Notes</div>
+          <textarea id="analysis-notes" placeholder="Take notes here..."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historical section -->
+    <section id="section-historical" class="section">
+      <div class="analysis-container">
+        <div class="analysis-nav">
+          <div class="analysis-nav-header">View</div>
+          <ul class="analysis-metrics-list" id="historical-metrics-list">
+            <li class="analysis-metric-item active" data-metric="historical-total">Total</li>
+            <li class="analysis-metric-item" data-metric="historical-by-company">By Company</li>
+            <li class="analysis-metric-item" data-metric="historical-by-country">By Country</li>
+          </ul>
+        </div>
+        <div class="analysis-content" id="historical-content">
+          <div class="analysis-placeholder">Select a view from the menu</div>
+        </div>
+        <div class="analysis-notes">
+          <div class="notes-header">Notes</div>
+          <textarea id="historical-notes" placeholder="Take notes here..."></textarea>
+        </div>
       </div>
     </section>
 
