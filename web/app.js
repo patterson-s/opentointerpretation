@@ -6,7 +6,7 @@
  *   No JS changes needed for basic "coming soon" sections.
  */
 
-const SECTIONS = ['companies', 'models', 'countries', 'analysis', 'historical'];
+const SECTIONS = ['companies', 'models', 'countries', 'licenses', 'analysis', 'historical'];
 const DEFAULT_SECTION = 'companies';
 
 function activateSection(name) {
@@ -108,6 +108,13 @@ function renderCompanyDetail(panel, d) {
     ? `<span class="company-handle">huggingface.co/${d.hf_handle}</span>`
     : '';
 
+  const licDistRows = (d.license_distribution || []).map(r => `
+    <tr>
+      <td><a href="#licenses" class="license-link" data-slug="${escHtml(r.slug)}">${escHtml(r.slug)}</a></td>
+      <td style="text-align:right;font-family:var(--font-mono);color:var(--gray-600)">${r.count}</td>
+    </tr>
+  `).join('');
+
   panel.innerHTML = `
     <div class="company-header">
       <div class="company-name">${escHtml(d.display_name)}</div>
@@ -134,10 +141,30 @@ function renderCompanyDetail(panel, d) {
     </div>
 
     <div class="section-title">License Distribution</div>
+    <table class="license-dist-table"><tbody>${licDistRows}</tbody></table>
+
     <div class="license-chart-wrap">
       <canvas id="license-chart"></canvas>
     </div>
   `;
+
+  // Wire up license slug click-throughs
+  panel.querySelectorAll('.license-link').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const slug = a.dataset.slug;
+      location.hash = 'licenses';
+      setTimeout(() => {
+        const li = document.querySelector(`#license-list li[data-slug="${CSS.escape(slug)}"]`);
+        if (li) {
+          selectLicense(slug, li);
+          li.scrollIntoView({ block: 'nearest' });
+        } else {
+          loadLicenseDetail(slug);
+        }
+      }, 80);
+    });
+  });
 
   renderLicenseChart(d.license_distribution);
 }
@@ -345,10 +372,148 @@ function setupAnalysisNavigation() {
   }
 }
 
+/* ── Licenses section ────────────────────────────────────────────────────────*/
+
+let allLicenses = [];
+let activeLicenseSlug = null;
+
+async function loadLicenseList() {
+  const res = await fetch('/api/licenses');
+  if (!res.ok) throw new Error(`Failed to fetch licenses: ${res.status}`);
+  allLicenses = await res.json();
+  renderLicenseList(allLicenses);
+}
+
+function renderLicenseList(licenses) {
+  const ul = document.getElementById('license-list');
+  if (!ul) return;
+  ul.innerHTML = '';
+  licenses.forEach(lic => {
+    const li = document.createElement('li');
+    li.dataset.slug = lic.slug;
+    const label = lic.display_name && lic.display_name !== lic.slug
+      ? `${escHtml(lic.display_name)} <span style="color:var(--gray-400);font-size:11px">${escHtml(lic.slug)}</span>`
+      : escHtml(lic.slug);
+    li.innerHTML = label;
+    li.title = `${lic.model_count} model${lic.model_count !== 1 ? 's' : ''}`;
+    if (lic.slug === activeLicenseSlug) li.classList.add('selected');
+    li.addEventListener('click', () => selectLicense(lic.slug, li));
+    ul.appendChild(li);
+  });
+}
+
+function selectLicense(slug, liEl) {
+  document.querySelectorAll('#license-list li').forEach(el => el.classList.remove('selected'));
+  if (liEl) liEl.classList.add('selected');
+  activeLicenseSlug = slug;
+  loadLicenseDetail(slug);
+}
+
+async function loadLicenseDetail(slug) {
+  const panel = document.getElementById('license-detail');
+  if (!panel) return;
+  panel.innerHTML = '<div class="detail-empty">Loading…</div>';
+  const res = await fetch(`/api/licenses/${encodeURIComponent(slug)}`);
+  if (!res.ok) {
+    panel.innerHTML = `<div class="detail-empty">Error loading license (${res.status})</div>`;
+    return;
+  }
+  const data = await res.json();
+  renderLicenseDetail(panel, data);
+}
+
+function renderLicenseDetail(panel, d) {
+  const familyBadge = d.family
+    ? `<span class="license-badge license-badge--${escHtml(d.family)}">${escHtml(d.family)}</span>`
+    : '';
+  const osiBadge = d.is_osi_approved === true
+    ? '<span class="license-badge license-badge--osi">OSI Approved</span>'
+    : d.is_osi_approved === false
+      ? '<span class="license-badge license-badge--not-osi">Not OSI</span>'
+      : '';
+  const sourceLink = d.source_url
+    ? `<a href="${escHtml(d.source_url)}" target="_blank" rel="noopener" class="license-source-link">View source ↗</a>`
+    : '';
+
+  const boolCell = v =>
+    v === true ? '<span style="color:#16a34a;font-weight:600">Yes</span>'
+    : v === false ? '<span style="color:#dc2626">No</span>'
+    : '—';
+
+  const companiesHtml = (d.companies || []).map(co => `
+    <div class="license-company-group">
+      <span class="license-company-name">${escHtml(co.company_name)}</span>
+      <span class="license-company-count">${co.model_count} model${co.model_count !== 1 ? 's' : ''}</span>
+    </div>
+  `).join('');
+
+  const textBlock = d.license_text
+    ? `<div class="section-title">License Text ${sourceLink}</div>
+       <pre class="license-text-pre">${escHtml(d.license_text)}</pre>`
+    : `<div class="section-title">License Text ${sourceLink}</div>
+       <div class="license-text-missing">License text not yet fetched — run huggingface/fetch_license_texts.py</div>`;
+
+  panel.innerHTML = `
+    <div class="company-header">
+      <div class="company-name">${escHtml(d.display_name || d.slug)}</div>
+      <div class="company-handle">${escHtml(d.slug)}</div>
+      <div class="license-badges">${familyBadge}${osiBadge}</div>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-label">Commercial Use</div>
+        <div class="stat-value small">${boolCell(d.allows_commercial_use)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Derivatives</div>
+        <div class="stat-value small">${boolCell(d.allows_derivatives)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Attribution</div>
+        <div class="stat-value small">${boolCell(d.requires_attribution)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Share-Alike</div>
+        <div class="stat-value small">${boolCell(d.requires_share_alike)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Models Using</div>
+        <div class="stat-value">${(d.companies || []).reduce((s, c) => s + c.model_count, 0)}</div>
+      </div>
+    </div>
+
+    ${d.notes ? `<div class="section-title">Notes</div><p class="license-notes">${escHtml(d.notes)}</p>` : ''}
+
+    <div class="section-title">Companies Using This License</div>
+    <div class="license-companies-list">
+      ${companiesHtml || '<div class="license-text-missing">No models recorded.</div>'}
+    </div>
+
+    ${textBlock}
+  `;
+}
+
+document.getElementById('license-search').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  const filtered = allLicenses.filter(l =>
+    (l.slug || '').toLowerCase().includes(q) ||
+    (l.display_name || '').toLowerCase().includes(q)
+  );
+  renderLicenseList(filtered);
+});
+
+
 /* ── Init ───────────────────────────────────────────────────────────────────*/
 loadCompanyList().catch(err => {
   console.error('Failed to load companies:', err);
   const ul = document.getElementById('company-list');
+  if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
+});
+
+loadLicenseList().catch(err => {
+  console.error('Failed to load licenses:', err);
+  const ul = document.getElementById('license-list');
   if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
 });
 

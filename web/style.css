@@ -386,6 +386,127 @@ main {
   box-shadow: var(--shadow-sm);
 }
 
+/* ── Licenses section ──────────────────────────────────────────────────────── */
+#section-licenses {
+  flex-direction: row;
+}
+
+.license-badges {
+  margin-top: .4rem;
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.license-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: .2rem .55rem;
+  border-radius: 20px;
+  border: 1px solid;
+  display: inline-block;
+}
+
+.license-badge--open-source  { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+.license-badge--bespoke      { color: #d97706; border-color: #d97706; background: #fffbeb; }
+.license-badge--proprietary  { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+.license-badge--unknown      { color: var(--gray-400); border-color: var(--gray-200); background: var(--gray-100); }
+.license-badge--osi          { color: #2563eb; border-color: #2563eb; background: #eff6ff; }
+.license-badge--not-osi      { color: var(--gray-400); border-color: var(--gray-200); background: var(--gray-100); }
+
+.license-source-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-left: .75rem;
+  vertical-align: middle;
+}
+.license-source-link:hover { text-decoration: underline; }
+
+.license-text-pre {
+  background: var(--gray-900);
+  color: #e5e7eb;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-top: .5rem;
+}
+
+.license-text-missing {
+  color: var(--gray-400);
+  font-size: 13px;
+  font-style: italic;
+  margin: .5rem 0 1rem;
+}
+
+.license-notes {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+}
+
+.license-companies-list {
+  margin-bottom: 1.5rem;
+}
+
+.license-company-group {
+  display: flex;
+  align-items: baseline;
+  padding: .45rem 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.license-company-name {
+  font-size: 13px;
+  color: var(--gray-800);
+  font-weight: 500;
+}
+
+.license-company-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-left: .5rem;
+}
+
+.license-dist-table {
+  width: 100%;
+  max-width: 400px;
+  font-size: 13px;
+  border-collapse: collapse;
+  margin-top: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.license-dist-table td {
+  padding: .35rem .5rem;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+a.license-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+a.license-link:hover { text-decoration: underline; }
+
 /* ── Scrollbar tweaks ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

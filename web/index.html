@@ -16,6 +16,7 @@
       <a href="#companies" class="nav-link">Companies</a>
       <a href="#models"    class="nav-link">Models</a>
       <a href="#countries" class="nav-link">Countries</a>
+      <a href="#licenses"  class="nav-link">Licenses</a>
       <a href="#analysis"  class="nav-link">Analysis</a>
       <a href="#historical" class="nav-link">Historical</a>
     </nav>
@@ -101,6 +102,23 @@
           <div class="notes-header">Notes</div>
           <textarea id="historical-notes" placeholder="Take notes here..."></textarea>
         </div>
+      </div>
+    </section>
+
+    <!-- Licenses section -->
+    <section id="section-licenses" class="section">
+      <!-- Left: license list -->
+      <div class="company-list-panel">
+        <div class="panel-header">Licenses</div>
+        <div class="search-wrap">
+          <input id="license-search" type="text" placeholder="Filter..." autocomplete="off" />
+        </div>
+        <ul class="company-list" id="license-list"></ul>
+      </div>
+
+      <!-- Right: license detail -->
+      <div class="company-detail-panel" id="license-detail">
+        <div class="detail-empty">Select a license to view details</div>
       </div>
     </section>
 

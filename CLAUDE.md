@@ -22,9 +22,10 @@ PGHOST=localhost  PGPORT=5432  PGDATABASE=opentointerpretation  PGUSER=postgres 
 
 ### Run the web app / API
 ```bash
-uvicorn api.app:app --reload        # http://localhost:8000
-run.bat                             # Windows convenience script (same command)
-# API docs auto-generated at http://localhost:8000/docs
+run.bat                             # Windows: starts uvicorn on http://localhost:8080
+uvicorn api.app:app --reload --port 8080   # equivalent manual command
+# API docs auto-generated at http://localhost:8080/docs
+# NOTE: port 8000 is held by a system process (Claude Code app) and cannot be used
 ```
 
 ### Database
@@ -32,6 +33,9 @@ run.bat                             # Windows convenience script (same command)
 python db/ingest.py --sample        # insert first 5 records per source, print rows
 python db/ingest.py                 # full ingestion (4,258 records total)
 # Source file: huggingface/hf_6jan2026_meta.json (enriched; do NOT revert to hf_6jan2026.json)
+
+# Apply schema migrations
+psql -U postgres -d opentointerpretation -f db/migrate_add_license_text.sql
 ```
 
 ### Fetch / enrich HuggingFace data
@@ -50,6 +54,12 @@ python huggingface/enrich_hf_metadata.py \
     --input huggingface/hf_6jan2026.json \
     --output huggingface/hf_6jan2026_meta.json \
     [--limit 10]   # omit for full run (~25 min at 0.3s/call)
+
+# Fetch license texts into the licenses table (idempotent; skips already-populated rows)
+python huggingface/fetch_license_texts.py             # all missing slugs
+python huggingface/fetch_license_texts.py --slug mit  # single slug
+python huggingface/fetch_license_texts.py --force     # re-fetch all
+# SERPER_API_KEY env var required for 4 slugs without canonical URLs
 ```
 
 ### Analysis reports
@@ -73,6 +83,7 @@ hf_pipeline.py → enrich_hf_licenses.py → add_country_hq.py ─┐
 - `api/app.py` — FastAPI app; includes routers; mounts `web/` as static files at `/` (API routes take priority)
 - `api/db.py` — `get_cursor()` context manager; yields a `RealDictCursor`; loads `.env` from project root
 - `api/routers/companies.py` — `GET /api/companies` (list) and `GET /api/companies/{id}` (detail with license distribution)
+- `api/routers/licenses.py` — `GET /api/licenses` (list with model counts) and `GET /api/licenses/{slug}` (detail with full text + companies using it)
 - `api/routers/analysis.py` — aggregation endpoints:
   - `GET /api/analysis/model-releases-by-country` — model count grouped by org HQ country
   - `GET /api/analysis/model-releases-by-company` — model count grouped by company
@@ -86,8 +97,8 @@ hf_pipeline.py → enrich_hf_licenses.py → add_country_hq.py ─┐
 To add a new section: create `api/routers/<name>.py`, include it in `api/app.py`, add `'<name>'` to the `SECTIONS` array in `web/app.js`, add a `<section id="section-<name>">` in `web/index.html`, and a nav link. The hash router in `activateSection()` handles everything else automatically.
 
 ### Frontend (`web/`)
-- `web/index.html` — SPA shell; nav tabs hash-route to `#companies`, `#models`, `#countries`, `#analysis`, `#historical`
-- `web/app.js` — `activateSection()` handles hash routing; `loadCompanyList()` / `loadCompanyDetail()` drive the company viewer; Analysis and Historical sections each have their own metric sub-nav, Chart.js charts, and a localStorage-backed notes field per metric
+- `web/index.html` — SPA shell; nav tabs hash-route to `#companies`, `#models`, `#countries`, `#licenses`, `#analysis`, `#historical`
+- `web/app.js` — `activateSection()` handles hash routing; `loadCompanyList()` / `loadCompanyDetail()` drive the company viewer; `loadLicenseList()` / `loadLicenseDetail()` drive the license viewer; Analysis and Historical sections each have their own metric sub-nav, Chart.js charts, and a localStorage-backed notes field per metric
 - `web/style.css` — no framework; CSS custom properties in `:root` for colors/fonts
 
 Key JS patterns:
@@ -95,6 +106,9 @@ Key JS patterns:
 - `pivotHistoricalData(rows, keyField, topN)` — converts flat `[{month, key, count}]` API rows into Chart.js multi-dataset format for stacked charts
 - `loadNotesForMetric(metric)` / `loadHistoricalNotes(metric)` — localStorage persistence keyed to metric name
 - All analysis/historical sub-navs use click delegation on `.analysis-metrics-list` with `data-metric` attributes
+- License slugs in company detail are clickable — they navigate to `#licenses` and select the slug via `selectLicense()`
+
+Two-panel sections (Companies, Licenses) share `.company-list-panel` / `.company-detail-panel` CSS classes. Adding a new two-panel section requires only the `flex-direction: row` rule on the section ID and the shared panel classes — no new layout CSS needed.
 
 ### Database schema (`db/schema.sql`)
 Three tables: `companies` → `models` ← `licenses`
@@ -102,6 +116,16 @@ Three tables: `companies` → `models` ← `licenses`
 - `models.metadata JSONB` holds enriched HF fields: `pipeline_tag`, `modality`, `num_parameters`, `last_modified`, `library_name`, `gated`, `language`, `architectures`, `model_type`, `tags`
 - `models.release_date` (DATE) is populated from `createdAt` (HF repo creation date); 99.9% coverage after enrichment
 - `models.license_id` is nullable (22.6% null rate from source data)
+- `licenses` table columns: `slug`, `display_name`, `family`, `is_osi_approved`, `notes`, `license_text`, `source_url`, `allows_commercial_use`, `allows_derivatives`, `requires_attribution`, `requires_share_alike`
+- Schema migrations live in `db/migrate_*.sql` — always use `ADD COLUMN IF NOT EXISTS`
+
+### License text pipeline (`huggingface/fetch_license_texts.py`)
+- `CANONICAL_URLS` dict maps each known slug to a direct fetch URL (Apache.org, Creative Commons, GitHub raw, Google AI, AI21, HuggingFace blog)
+- `SERPER_SEARCH_HINTS` dict provides targeted search queries for unusual slugs
+- Falls back to a generic Serper search for any slug with no canonical URL
+- Skips `other` and `unknown` slugs entirely
+- DB checkpoint: reads `WHERE license_text IS NULL` on startup; `--force` bypasses this
+- 27/32 slugs populated; 4 remaining require `SERPER_API_KEY` (hybrid/NVIDIA slugs)
 
 ### HuggingFace enrichment scripts
 All scripts support checkpoint recovery — they write a `.ckpt.json` on each interval so long runs can be resumed.

@@ -1,5 +1,53 @@
 # Project Log
 
+## 13 April 2026 (continued, session 3)
+
+### License Text Storage and Licenses Tab
+
+**Context**
+Each open-weight model on HuggingFace carries a license slug (e.g. `apache-2.0`, `tongyi-qianwen`, `llama3`). The database already had a `licenses` table with slugs but no actual license text. Goal: store the full text of each unique license, add analysis boolean columns, expose licenses through the API, and add a dedicated Licenses tab to the web explorer.
+
+**Database migration (`db/migrate_add_license_text.sql`)**
+Six new columns added to the `licenses` table:
+- `license_text TEXT` — full text of the license
+- `source_url VARCHAR(1000)` — URL the text was fetched from
+- `allows_commercial_use BOOLEAN`
+- `allows_derivatives BOOLEAN`
+- `requires_attribution BOOLEAN`
+- `requires_share_alike BOOLEAN`
+
+**License text fetcher (`huggingface/fetch_license_texts.py`)**
+- Iterates all license slugs in the DB; skips already-populated rows (idempotent)
+- `CANONICAL_URLS` dict maps each of the 32 slugs to a known source: Apache.org, Creative Commons, GitHub raw (Meta Llama, BigScience, NVIDIA, Qwen, AI21), Google AI dev (Gemma), HuggingFace blog (OpenRAIL), and AI21's website (Jamba)
+- Falls back to Serper API search for hybrid/unusual slugs when `SERPER_API_KEY` is set
+- CLI flags: `--dry-run`, `--slug SLUG`, `--force`
+- **Result: 27/32 slugs populated** (4 require Serper API key; `other`/`unknown` intentionally skipped)
+
+**API (`api/routers/licenses.py`)**
+- `GET /api/licenses` — all licenses sorted by model count descending; includes all analysis boolean columns
+- `GET /api/licenses/{slug}` — full detail: license text, source URL, companies using this license with per-company model lists; 404 on unknown slug
+- Registered in `api/app.py`
+
+**Frontend**
+
+*Nav and section:* Licenses tab added between Countries and Analysis. Uses the same two-panel layout as Companies (reuses `.company-list-panel` / `.company-detail-panel` CSS classes with zero new layout CSS).
+
+*Left panel:* Searchable list of all 32 license slugs, sorted by model count. Supports `display_name` fallback label.
+
+*Right panel (license detail):*
+- Header with slug, display name, family badge (color-coded: open-source/bespoke/proprietary/unknown), OSI Approved badge
+- Four stat cards: Commercial Use, Derivatives, Attribution, Share-Alike (Yes / No / — from boolean columns)
+- Companies using this license with model counts
+- Full license text in a scrollable dark `<pre>` block, or "not yet fetched" placeholder
+- "View source ↗" link to the source URL
+
+*Company detail click-through:* The license distribution in the Companies tab now renders as a clickable table in addition to the bar chart. Clicking any license slug navigates to `#licenses` and selects that slug.
+
+**Port change**
+Port 8000 was found to be held by a non-killable system-level process (PID visible in netstat but not in Win32 process list — likely the Claude Code app). `run.bat` updated to use **port 8080**. CORS origins updated accordingly. App now runs at `http://localhost:8080`.
+
+---
+
 ## 13 April 2026 (continued)
 
 ### Historical Model Releases Tab
