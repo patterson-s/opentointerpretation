@@ -1,32 +1,17 @@
 # Instructions
 
-I would like for you to conduct some background research on the different AI companies that I am researching. In particular, focus on these companies: 
+Our goal is to better understand the different "types" of models that companies release. I want to derive and apply a classification scheme to models so that we can understand the different niches and specializations that companies fill. 
 
-OpenAI
-Anthropic
-Google DeepMind
-xAI
-Meta AI
-Cohere (Note - headquarters is Toronto, Canada - the California office is an affiliate)
-Mistral
-Baidu
-DeepSeek
-Alibaba Qwen
+For a typology scheme, we should think along these lines: 
+- general LLM; specialized LLM; accessory model - for example, I would consider Cohere's Command - A to be a general LLM; I would consider Mistral's Pixtral to be specialized - image, and Mistral's Devstral to be specialized - code; I would consider Cohere's embedding model to be accessory; there will be some ambiguities here - for example, I'm not exactly sure what I'd say about a specific reasoning model, but probably specialized - reasoning. 
+- When building this typology, think in terms of {types} and {tags}; types are mutually exclusive, tags can be multiple and overlapping. The typology should aim to minimize overlap between models, while also describing the differences between models in the most salient axes of variation. 
 
-I want to know where the offices of these companies are. In particular, I am interested in knowing where all of the: 
-- headquarters
-- affiliate
+For each company
+- review all models at the same time; this may take several prompts and aggregation for companies with many models; in this round, generate a company-wide typology. 
+- then, analyze typologies across companies. arrive at a covering typology scheme. present this typology to me. 
+- then, after deriving the typology, embed it into a prompt and go back and reapply it to each of the models. This is like a classification task. 
 
-I want to have this at the level of City, Country
+You should use Claude Sonnet for the first two tasks. Then, you should use Cohere Command A for the classification task.
 
-To do this, I want you to do online research using the Serper API. You should do a serper websearch for each company. You can use proceed through one link at a time. When you find the answer, try to substantiate it in a separate source. If you cannot substantiate it after looking into 3 additional sources, then give up. 
-
-We will be doing long-term, ongoing research on these companies. Therefore, it will be useful to save the search results so that we can query them again, should we need to. We should process the search results like we did with the Prosopography tool; we can adopt a similar provenance tracking system. The results should be saved in the database, perhaps as another schema, along the lines of a derivative, source material schema, with an affiliation to each company. In the future, I'd like to just be able to search i.e. sources on deepseek for information, or even add more sources to that as time goes on. 
-
-We should chunk and embed sources - use Cohere for embeddings. 
-
-For the RAG prompts, use Cohere Command-A with cohere Reranking. There is a cohere api key in the .env file. Make sure that you check for the api key in the .env file - do not look for it as a system variable. 
-
-For the prompt pipeline - first look for the locations. When you have found some, then fact-check them. It's a two prompt system. I should be able to know which locations you could substantiate in two separate sources. 
-
+When you have completed the task and received my approval, update log.md with what we have done. THe date is April 14, 2026. 
 

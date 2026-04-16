@@ -61,6 +61,14 @@ nav {
   gap: .25rem;
 }
 
+.last-updated-badge {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--gray-400);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
 nav a {
   display: inline-block;
   padding: .35rem .8rem;
@@ -874,6 +882,27 @@ td.models-empty {
   font-size: 13px;
   color: var(--gray-600);
   margin-bottom: 1rem;
+}
+
+/* Typology type badges */
+.typology-type-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: .15rem .5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.typology-general-llm    { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.typology-specialized-llm { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.typology-accessory      { background: #fef9c3; color: #854d0e; border: 1px solid #fef08a; }
+
+/* Typology tags (slightly distinct from HF tags) */
+.typology-tag {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
 }
 
 /* ── Map section ───────────────────────────────────────────────────────────── */

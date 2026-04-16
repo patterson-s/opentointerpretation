@@ -1,0 +1,488 @@
+{
+  "version": "1.0",
+  "types": [
+    {
+      "id": "general-llm",
+      "label": "General LLM",
+      "definition": "Broad-capability language models designed for general-purpose text generation, chat, instruction-following, or completion tasks without a dominant domain or modality specialization. Includes base pretrained models and instruction-tuned/RLHF-aligned chat models across all architectures (dense, MoE, SSM, hybrid).",
+      "examples": [
+        "gpt-4o",
+        "claude-3-5-sonnet",
+        "meta-llama/Llama-3.1-70B-Instruct",
+        "mistralai/Mistral-7B-Instruct-v0.3",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "google/gemma-2-9b-it",
+        "EleutherAI/pythia-12b",
+        "ai21labs/Jamba-1.5-Large"
+      ]
+    },
+    {
+      "id": "specialized-llm",
+      "label": "Specialized LLM",
+      "definition": "Generative language or multimodal models with a primary specialization in a specific domain, modality, or task \u2014 including code, math, reasoning, vision-language, audio-language, medical, scientific, image/video/3D generation, robotics, safety classification, and agent/tool-use models. The model's architecture, training data, or fine-tuning is predominantly oriented toward that specialization.",
+      "examples": [
+        "deepseek-ai/DeepSeek-Coder-V2-Instruct",
+        "Qwen/Qwen2.5-Math-72B-Instruct",
+        "meta-llama/Llama-3.2-11B-Vision-Instruct",
+        "mistralai/Pixtral-12B-2409",
+        "stabilityai/stable-diffusion-3-medium",
+        "nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+        "google/medgemma-4b-it",
+        "deepseek-ai/DeepSeek-R1"
+      ]
+    },
+    {
+      "id": "accessory",
+      "label": "Accessory",
+      "definition": "Non-generative or pipeline-support models that produce representations, scores, or structured outputs rather than free-form text or media. Includes embedding models, rerankers, classifiers, safety guards, ASR/speech models, image encoders, vision backbones, audio codecs/vocoders, tokenizers, sparse autoencoders, and other components that support but do not themselves constitute a generative LLM or specialized generative model.",
+      "examples": [
+        "openai/whisper-large-v3",
+        "openai/clip-vit-large-patch14",
+        "cohere/embed-multilingual-v3.0",
+        "cohere/rerank-english-v3.0",
+        "meta-llama/LlamaGuard-3-8B",
+        "nvidia/NV-Embed-v2",
+        "google/siglip-so400m-patch14-384",
+        "EleutherAI/sae-pythia-70m-32k"
+      ]
+    }
+  ],
+  "tags": [
+    {
+      "id": "base",
+      "label": "Base / Pretrained",
+      "definition": "Model released as a raw pretrained checkpoint without instruction tuning, RLHF, or task-specific fine-tuning; intended as a foundation for further fine-tuning.",
+      "example_models": [
+        "meta-llama/Llama-3.1-70B",
+        "Qwen/Qwen2.5-72B",
+        "EleutherAI/pythia-12b"
+      ]
+    },
+    {
+      "id": "instruction-tuned",
+      "label": "Instruction-Tuned",
+      "definition": "Model fine-tuned with supervised instruction-following data (SFT), RLHF, DPO, or similar alignment techniques to follow user instructions or engage in dialogue.",
+      "example_models": [
+        "meta-llama/Llama-3.1-70B-Instruct",
+        "mistralai/Mistral-7B-Instruct-v0.3",
+        "google/gemma-2-9b-it"
+      ]
+    },
+    {
+      "id": "chat",
+      "label": "Chat / Conversational",
+      "definition": "Model optimized for multi-turn conversational interaction, typically instruction-tuned with dialogue-specific data or RLHF.",
+      "example_models": [
+        "anthropic/claude-3-5-sonnet",
+        "openai/gpt-4o",
+        "01-ai/Yi-1.5-34B-Chat"
+      ]
+    },
+    {
+      "id": "rlhf",
+      "label": "RLHF / Preference-Aligned",
+      "definition": "Model trained with reinforcement learning from human feedback (RLHF), direct preference optimization (DPO), PPO, or similar preference-learning methods beyond basic SFT.",
+      "example_models": [
+        "meta-llama/Llama-2-70b-chat-hf",
+        "EleutherAI/gpt-neox-20b-hh-rlhf",
+        "nvidia/Nemotron-4-340B-Instruct"
+      ]
+    },
+    {
+      "id": "reasoning",
+      "label": "Reasoning",
+      "definition": "Model explicitly trained or fine-tuned for multi-step chain-of-thought reasoning, including extended thinking, process reward training, or RL-based reasoning (e.g., R1-style models).",
+      "example_models": [
+        "deepseek-ai/DeepSeek-R1",
+        "anthropic/claude-3-7-sonnet",
+        "Qwen/QwQ-32B",
+        "nvidia/AceReason-Nemotron-7B"
+      ]
+    },
+    {
+      "id": "code",
+      "label": "Code",
+      "definition": "Model specialized for code generation, completion, understanding, or software engineering tasks.",
+      "example_models": [
+        "deepseek-ai/DeepSeek-Coder-V2-Instruct",
+        "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "meta-llama/CodeLlama-34b-hf",
+        "mistralai/Codestral-22B-v0.1"
+      ]
+    },
+    {
+      "id": "math",
+      "label": "Math",
+      "definition": "Model specialized for mathematical reasoning, problem solving, or formal theorem proving.",
+      "example_models": [
+        "Qwen/Qwen2.5-Math-72B-Instruct",
+        "deepseek-ai/deepseek-math-7b-rl",
+        "EleutherAI/llemma_34b",
+        "mistralai/Mathstral-7B-v0.1"
+      ]
+    },
+    {
+      "id": "vision",
+      "label": "Vision",
+      "definition": "Model that processes or generates visual content (images, video), including vision-language models, image generation models, and video generation models.",
+      "example_models": [
+        "meta-llama/Llama-3.2-11B-Vision-Instruct",
+        "Qwen/Qwen2-VL-72B-Instruct",
+        "stabilityai/stable-diffusion-3-medium",
+        "google/paligemma-3b-mix-224"
+      ]
+    },
+    {
+      "id": "audio",
+      "label": "Audio / Speech",
+      "definition": "Model that processes or generates audio, speech, or music, including ASR, TTS, audio-language models, vocoders, and audio codecs.",
+      "example_models": [
+        "openai/whisper-large-v3",
+        "mistralai/Voxtral-Mini-3B-2507",
+        "Qwen/Qwen2-Audio-7B-Instruct",
+        "nvidia/BigVGAN-v2-44khz-128band-512x"
+      ]
+    },
+    {
+      "id": "multimodal",
+      "label": "Multimodal",
+      "definition": "Model that natively handles two or more modalities (e.g., text+image, text+audio, text+image+audio) in a unified architecture.",
+      "example_models": [
+        "openai/gpt-4o",
+        "Qwen/Qwen2.5-Omni-7B",
+        "google/gemini-1.5-pro",
+        "openbmb/MiniCPM-o-2_6"
+      ]
+    },
+    {
+      "id": "multilingual",
+      "label": "Multilingual",
+      "definition": "Model trained on or explicitly supporting multiple languages beyond English, with meaningful non-English capability.",
+      "example_models": [
+        "CohereForAI/aya-23-35B",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "google/mt5-xxl",
+        "meta-llama/Llama-3.1-70B-Instruct"
+      ]
+    },
+    {
+      "id": "long-context",
+      "label": "Long Context",
+      "definition": "Model with a significantly extended context window (typically \u226532K tokens) or specifically optimized for long-document processing.",
+      "example_models": [
+        "anthropic/claude-2-1",
+        "Qwen/Qwen2.5-7B-Instruct-1M",
+        "google/gemini-1.5-pro",
+        "mistralai/Mistral-Large-2411"
+      ]
+    },
+    {
+      "id": "moe",
+      "label": "Mixture-of-Experts",
+      "definition": "Model using a sparse mixture-of-experts architecture where only a subset of parameters are active per forward pass.",
+      "example_models": [
+        "deepseek-ai/DeepSeek-V3",
+        "Qwen/Qwen3-235B-A22B",
+        "mistralai/Mixtral-8x22B-Instruct-v0.1",
+        "ai21labs/Jamba-1.5-Large"
+      ]
+    },
+    {
+      "id": "quantized",
+      "label": "Quantized",
+      "definition": "Model released in a reduced-precision format (e.g., INT4, INT8, FP8, NVFP4, GGUF, AWQ, GPTQ, QAT) for efficient inference.",
+      "example_models": [
+        "Qwen/Qwen2.5-72B-Instruct-AWQ",
+        "meta-llama/Llama-3.1-405B-Instruct-FP8",
+        "mistralai/Mistral-7B-Instruct-v0.3-GGUF"
+      ]
+    },
+    {
+      "id": "distilled",
+      "label": "Distilled / Pruned",
+      "definition": "Model derived from a larger teacher model via knowledge distillation, structured pruning, or similar compression techniques that transfer capability to a smaller model.",
+      "example_models": [
+        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "nvidia/Minitron-4B-Base",
+        "openai/whisper-large-v3-turbo",
+        "microsoft/Phi-3-mini-4k-instruct"
+      ]
+    },
+    {
+      "id": "medical",
+      "label": "Medical / Clinical",
+      "definition": "Model specialized for medical, clinical, or healthcare domains, including biomedical NLP, radiology, pathology, drug discovery, and clinical reasoning.",
+      "example_models": [
+        "google/medgemma-4b-it",
+        "baichuan-inc/Baichuan-M1-14B-Instruct",
+        "microsoft/BioGPT-Large",
+        "nvidia/MedImageInsight"
+      ]
+    },
+    {
+      "id": "scientific",
+      "label": "Scientific / Domain",
+      "definition": "Model specialized for a non-medical scientific domain such as biology, chemistry, materials science, genomics, weather forecasting, or geospatial analysis.",
+      "example_models": [
+        "microsoft/aurora",
+        "nvidia/ESM2-650M",
+        "google/AlphaGenome-Arabidopsis-v1",
+        "microsoft/MatterGen"
+      ]
+    },
+    {
+      "id": "agent",
+      "label": "Agent / Tool-Use",
+      "definition": "Model fine-tuned or designed for agentic tasks including tool/function calling, multi-step planning, computer/GUI interaction, or orchestrating external APIs.",
+      "example_models": [
+        "CohereForAI/command-a-03-2025",
+        "anthropic/claude-3-7-sonnet",
+        "nvidia/Nemotron-CodeAgent-8B",
+        "openbmb/AgentCPM-GUI"
+      ]
+    },
+    {
+      "id": "robotics",
+      "label": "Robotics / Embodied AI",
+      "definition": "Model designed for robotic control, manipulation, navigation, or physical-world interaction, including vision-language-action models and world models for simulation.",
+      "example_models": [
+        "nvidia/GR00T-N1-2B",
+        "nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+        "microsoft/Magma-8B"
+      ]
+    },
+    {
+      "id": "safety",
+      "label": "Safety / Guardrail",
+      "definition": "Model designed to detect, classify, or mitigate unsafe, harmful, or policy-violating content, including content moderation classifiers, jailbreak detectors, and prompt injection guards.",
+      "example_models": [
+        "meta-llama/LlamaGuard-3-8B",
+        "meta-llama/Prompt-Guard-86M",
+        "google/shieldgemma-2b",
+        "nvidia/Aegis-AI-Content-Safety-LlamaGuard-Defensive-1.0"
+      ]
+    },
+    {
+      "id": "embedding",
+      "label": "Embedding",
+      "definition": "Model that produces dense vector representations of text, images, or other inputs for semantic search, retrieval, or similarity tasks.",
+      "example_models": [
+        "cohere/embed-multilingual-v3.0",
+        "nvidia/NV-Embed-v2",
+        "Qwen/Qwen3-Embedding-8B",
+        "openbmb/MiniCPM-Embedding"
+      ]
+    },
+    {
+      "id": "reranker",
+      "label": "Reranker",
+      "definition": "Model that scores or reorders candidate passages/documents given a query, used in retrieval-augmented generation and search pipelines.",
+      "example_models": [
+        "cohere/rerank-multilingual-v3.0",
+        "Qwen/Qwen3-Reranker-8B",
+        "nvidia/NemoRetriever-Reranking-v2",
+        "openbmb/MiniCPM-Reranker"
+      ]
+    },
+    {
+      "id": "classifier",
+      "label": "Classifier",
+      "definition": "Model that assigns discrete labels or scores to inputs, including text classifiers, image classifiers, reward models, NLI models, and quality filters.",
+      "example_models": [
+        "google/tapas-large-finetuned-wtq",
+        "microsoft/deberta-v3-large-mnli",
+        "nvidia/Nemotron-4-340B-Reward",
+        "EleutherAI/enformer-official-rough"
+      ]
+    },
+    {
+      "id": "reward-model",
+      "label": "Reward Model",
+      "definition": "Model trained to score outputs for quality, helpfulness, or preference alignment, used in RLHF pipelines or inference-time best-of-N selection.",
+      "example_models": [
+        "nvidia/Nemotron-4-340B-Reward",
+        "Qwen/Qwen2.5-Math-PRM-72B",
+        "openbmb/UltraRM-13b"
+      ]
+    },
+    {
+      "id": "image-encoder",
+      "label": "Image Encoder / Vision Backbone",
+      "definition": "Model that encodes images into feature representations for use as a backbone in downstream vision or multimodal pipelines, without performing generation.",
+      "example_models": [
+        "openai/clip-vit-large-patch14",
+        "google/siglip-so400m-patch14-384",
+        "nvidia/RADIO-v2.5-H",
+        "tiiuae/SigLino-400M"
+      ]
+    },
+    {
+      "id": "diffusion",
+      "label": "Diffusion",
+      "definition": "Model using a diffusion-based generative process for image, video, audio, or 3D content generation.",
+      "example_models": [
+        "stabilityai/stable-diffusion-3-medium",
+        "nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+        "stabilityai/stable-audio-open-1.0",
+        "openai/consistency-models"
+      ]
+    },
+    {
+      "id": "text-to-image",
+      "label": "Text-to-Image",
+      "definition": "Model that generates images from text prompts.",
+      "example_models": [
+        "stabilityai/stable-diffusion-3-medium",
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        "Qwen/Qwen2.5-VL-72B-Instruct"
+      ]
+    },
+    {
+      "id": "video-generation",
+      "label": "Video Generation",
+      "definition": "Model that generates or predicts video sequences from text, image, or video inputs.",
+      "example_models": [
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        "nvidia/Cosmos-1.0-Diffusion-7B-Text2World",
+        "nvidia/Cosmos-Predict2-2B"
+      ]
+    },
+    {
+      "id": "3d-generation",
+      "label": "3D / 4D Generation",
+      "definition": "Model that generates 3D objects, scenes, or 4D (spatiotemporal) content from images, text, or video.",
+      "example_models": [
+        "openai/shap-e",
+        "stabilityai/TripoSR",
+        "stabilityai/sv3d-u",
+        "stabilityai/stable-point-aware-3d"
+      ]
+    },
+    {
+      "id": "asr",
+      "label": "Automatic Speech Recognition",
+      "definition": "Model that transcribes spoken audio to text.",
+      "example_models": [
+        "openai/whisper-large-v3",
+        "nvidia/parakeet-tdt-1.1b",
+        "CohereForAI/transcribe-v1",
+        "microsoft/speecht5_asr"
+      ]
+    },
+    {
+      "id": "tts",
+      "label": "Text-to-Speech",
+      "definition": "Model that synthesizes speech audio from text input.",
+      "example_models": [
+        "microsoft/speecht5_tts",
+        "nvidia/FastPitch",
+        "Qwen/Qwen3-TTS-1.7B",
+        "openbmb/VoxCPM2"
+      ]
+    },
+    {
+      "id": "ocr",
+      "label": "OCR / Document Understanding",
+      "definition": "Model specialized for optical character recognition, document layout analysis, or visually-situated text extraction.",
+      "example_models": [
+        "microsoft/trocr-large-printed",
+        "nvidia/Nemotron-OCR-1B-v1",
+        "deepseek-ai/DeepSeek-VL2",
+        "tiiuae/falcon-ocr"
+      ]
+    },
+    {
+      "id": "object-detection",
+      "label": "Object Detection / Segmentation",
+      "definition": "Model that localizes, detects, or segments objects or regions within images or video.",
+      "example_models": [
+        "google/owlvit-large-patch14",
+        "microsoft/conditional-detr-resnet-50",
+        "nvidia/SegFormer-B5-finetuned-ade-640-640",
+        "tiiuae/falcon-perception-seg"
+      ]
+    },
+    {
+      "id": "sparse-autoencoder",
+      "label": "Sparse Autoencoder / Interpretability",
+      "definition": "Model trained to decompose neural network activations into sparse, interpretable features for mechanistic interpretability research.",
+      "example_models": [
+        "EleutherAI/sae-pythia-70m-32k",
+        "google/gemma-scope-2b-pt-res",
+        "EleutherAI/clt-pythia-160m"
+      ]
+    },
+    {
+      "id": "ssm",
+      "label": "State Space Model",
+      "definition": "Model using a state space model architecture (e.g., Mamba, RWKV) instead of or in combination with standard transformer attention.",
+      "example_models": [
+        "ai21labs/Jamba-1.5-Large",
+        "tiiuae/falcon-mamba-7b",
+        "nvidia/mamba2-hybrid-8b-3t-4k",
+        "mistralai/Codestral-Mamba-7B-v0.1"
+      ]
+    },
+    {
+      "id": "edge",
+      "label": "Edge / On-Device",
+      "definition": "Model specifically designed or optimized for deployment on resource-constrained hardware such as mobile devices, embedded systems, or NPUs.",
+      "example_models": [
+        "tiiuae/Falcon-E-1B-Base",
+        "google/gemma-3n-E2B-it",
+        "microsoft/Phi-3-mini-4k-instruct",
+        "meta-llama/Llama-3.2-1B-Instruct"
+      ]
+    },
+    {
+      "id": "omni",
+      "label": "Omni / Any-to-Any",
+      "definition": "Model supporting any-to-any generation across three or more modalities (e.g., text, image, audio, video) in a single unified model.",
+      "example_models": [
+        "Qwen/Qwen2.5-Omni-7B",
+        "openbmb/MiniCPM-o-2_6",
+        "google/gemma-3n-E4B-it",
+        "baichuan-inc/Baichuan-Omni-1.5"
+      ]
+    },
+    {
+      "id": "open-source",
+      "label": "Open Weights",
+      "definition": "Model with publicly released weights, enabling local deployment and fine-tuning.",
+      "example_models": [
+        "meta-llama/Llama-3.1-70B",
+        "mistralai/Mistral-7B-v0.3",
+        "EleutherAI/pythia-12b",
+        "Qwen/Qwen2.5-72B"
+      ]
+    },
+    {
+      "id": "research",
+      "label": "Research Artifact",
+      "definition": "Model released primarily as a research artifact, ablation checkpoint, or reproducibility resource rather than for production deployment.",
+      "example_models": [
+        "EleutherAI/pythia-14m",
+        "google/multiberts-seed_0",
+        "EleutherAI/polypythia-160m-seed1"
+      ]
+    },
+    {
+      "id": "unlearning",
+      "label": "Machine Unlearning / Data Filtering",
+      "definition": "Model trained or modified to selectively forget specific knowledge, typically for safety, privacy, or copyright reasons.",
+      "example_models": [
+        "EleutherAI/pythia-6.9b-deep-ignorance-pretraining-filtered"
+      ]
+    },
+    {
+      "id": "onnx",
+      "label": "ONNX / Runtime Export",
+      "definition": "Model exported to ONNX, TensorRT, CoreML, LiteRT, or another hardware-specific runtime format for optimized inference.",
+      "example_models": [
+        "microsoft/Phi-3-mini-4k-instruct-onnx",
+        "nvidia/Cosmos-1.0-Tokenizer-CV8x8x8-ONNX"
+      ]
+    }
+  ],
+  "notes": "CLASSIFICATION GUIDANCE:\n\n1. TYPE ASSIGNMENT \u2014 Use the primary purpose rule: assign the type that best describes what the model is primarily designed to do, not secondary capabilities.\n   - general-llm: assign when the model has no dominant domain/modality focus. A GPT-4o that happens to support vision is still general-llm if marketed as a general-purpose assistant. However, a model whose primary identity is 'vision-language model' (e.g., PaliGemma, LLaVA) is specialized-llm.\n   - specialized-llm: assign when the model's architecture, training corpus, or fine-tuning is predominantly oriented toward a specific domain (code, math, medical), modality (vision, audio), task (reasoning, OCR, image generation), or use case (robotics, agent). Safety classifiers that generate text (e.g., LlamaGuard) are specialized-llm, not accessory, because they are generative models with a specialized purpose.\n   - accessory: assign to non-generative pipeline components: encoders, embeddings, rerankers, classifiers that output scores/labels (not text), ASR models, TTS vocoders/codecs, image/video tokenizers, sparse autoencoders, reward models, and similar support components. The key test: does the model produce free-form text or media as its primary output? If no, it is likely an accessory.\n\n2. BOUNDARY CASES:\n   - Reward models: accessory (they score, not generate).\n   - Safety classifiers (LlamaGuard, ShieldGemma): specialized-llm when they generate safety assessments as text; accessory when they output only scores/labels.\n   - Image generation models (Stable Diffusion, DALL-E): specialized-llm (they are generative, with vision specialization).\n   - CLIP/SigLIP/vision encoders: accessory (they encode, not generate).\n   - ASR models (Whisper): accessory (transcription is structured output, not free-form generation).\n   - TTS acoustic models: accessory; full TTS pipelines that generate expressive speech may be specialized-llm.\n   - Sparse autoencoders, tuned lenses: accessory (interpretability tools).\n   - Tokenizers, VAE components, ControlNets: accessory.\n   - Diffusion models for image/video/audio generation: specialized-llm.\n\n3. TAG USAGE:\n   - Tags are descriptive and overlapping; apply all that are meaningfully true.\n   - 'base' and 'instruction-tuned' are mutually exclusive training-stage tags; apply one or both if a repo contains both variants.\n   - 'quantized' should be applied to any model released in a reduced-precision format, even if the full-precision version also exists.\n   - 'multilingual' requires meaningful non-English capability; bilingual zh/en models qualify.\n   - 'moe' applies to sparse mixture-of-experts architectures regardless of total vs. active parameter count.\n   - 'reasoning' applies to models with explicit chain-of-thought training (R1-style RL, extended thinking, process reward training), not merely models that can reason.\n   - 'omni' implies three or more modalities in a unified model; 'multimodal' covers two or more.\n   - 'edge' implies explicit optimization for on-device/resource-constrained deployment.\n   - 'research' should be applied to models released primarily as ablations, reproducibility checkpoints, or experimental artifacts without production intent.\n   - Language-specific tags (e.g., 'ja', 'zh', 'ar') from individual company analyses are subsumed under 'multilingual' in this canonical scheme to maintain tag compactness.\n\n4. STABILITY: The three types are intentionally broad and architecture-agnostic to remain stable as new model families emerge. New modalities or domains should be handled by adding tags, not new types."
+}

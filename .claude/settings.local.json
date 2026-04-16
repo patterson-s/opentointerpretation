@@ -42,7 +42,9 @@
       "Bash(cmd:*)",
       "Bash(set PYTHONIOENCODING=utf-8)",
       "Bash(curl -s http://localhost:8080/api/research/map)",
-      "Bash(uvicorn api.app:app --port 8080 --reload)"
+      "Bash(uvicorn api.app:app --port 8080 --reload)",
+      "Bash(ls -lh \"C:\\\\Users\\\\spatt\\\\Desktop\\\\opentointerpretation\\\\huggingface\\\\hf_modelcard\"*)",
+      "Bash(ls:*)"
     ]
   }
 }

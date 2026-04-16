@@ -164,6 +164,12 @@ def ingest_hf(
                 "pipeline_tag", "modality", "num_parameters", "last_modified",
                 "library_name", "gated", "language", "architectures",
                 "model_type", "tags",
+                # Extended API fields
+                "base_model", "fine_tuned_from", "datasets", "eval_metrics",
+                "trending_score", "inference", "vocab_size", "hidden_size",
+                "num_hidden_layers", "num_attention_heads", "max_position_embeddings",
+                "safetensors_total", "has_license_file", "has_readme",
+                "disabled", "private",
             )
             metadata = {k: rec[k] for k in meta_keys if k in rec and rec[k] is not None}
 

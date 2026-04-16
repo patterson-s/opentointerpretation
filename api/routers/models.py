@@ -41,7 +41,17 @@ def get_model_filters() -> dict:
         )
         modalities = [row["modality"] for row in cur.fetchall()]
 
-    return {"countries": countries, "modalities": modalities}
+        cur.execute(
+            """
+            SELECT DISTINCT metadata->>'typology_type' AS typology_type
+            FROM models
+            WHERE metadata->>'typology_type' IS NOT NULL
+            ORDER BY typology_type
+            """
+        )
+        typology_types = [row["typology_type"] for row in cur.fetchall()]
+
+    return {"countries": countries, "modalities": modalities, "typology_types": typology_types}
 
 
 @router.get("")
@@ -51,6 +61,7 @@ def list_models(
     country_hq: Optional[str] = None,
     data_source: Optional[str] = None,
     modality: Optional[str] = None,
+    typology_type: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> dict:
@@ -73,6 +84,9 @@ def list_models(
     if modality is not None:
         conditions.append("m.metadata->>'modality' = %s")
         params.append(modality)
+    if typology_type is not None:
+        conditions.append("m.metadata->>'typology_type' = %s")
+        params.append(typology_type)
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
@@ -99,6 +113,7 @@ def list_models(
                 l.slug                                         AS license_slug,
                 m.data_source,
                 m.metadata->>'modality'                        AS modality,
+                m.metadata->>'typology_type'                   AS typology_type,
                 CAST(m.metadata->>'num_parameters' AS DOUBLE PRECISION) AS num_parameters,
                 m.release_date,
                 m.downloads,

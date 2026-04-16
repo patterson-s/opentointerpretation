@@ -21,6 +21,7 @@
       <a href="#analysis"  class="nav-link">Analysis</a>
       <a href="#map"       class="nav-link">Map</a>
     </nav>
+    <span class="last-updated-badge" id="last-updated-badge"></span>
   </header>
 
   <!-- Main content -->
@@ -84,6 +85,12 @@
               <option value="">All modalities</option>
             </select>
           </div>
+          <div class="filter-group">
+            <label class="filter-label">Type</label>
+            <select id="models-filter-typology" class="filter-select">
+              <option value="">All types</option>
+            </select>
+          </div>
           <button id="models-clear-filters" class="clear-filters-btn">Clear filters</button>
         </div>
         <div class="models-result-count" id="models-result-count"></div>
@@ -102,6 +109,7 @@
                   <th>Company</th>
                   <th>License</th>
                   <th>Modality</th>
+                  <th>Type</th>
                   <th>Params (B)</th>
                   <th>Released</th>
                   <th>Downloads</th>
@@ -109,7 +117,7 @@
                 </tr>
               </thead>
               <tbody id="models-tbody">
-                <tr><td colspan="8" class="models-loading">Loading…</td></tr>
+                <tr><td colspan="9" class="models-loading">Loading…</td></tr>
               </tbody>
             </table>
           </div>

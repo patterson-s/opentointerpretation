@@ -15,6 +15,21 @@ For each model, fetches https://huggingface.co/api/models/{model_id} and extract
   - config.architectures → metadata.architectures
   - config.model_type    → metadata.model_type
   - tags              → metadata.tags (filtered)
+  - cardData.base_model       → metadata.base_model
+  - cardData.fine-tuned-from  → metadata.fine_tuned_from
+  - cardData.datasets         → metadata.datasets
+  - cardData.metrics          → metadata.eval_metrics
+  - trendingScore             → metadata.trending_score
+  - inference                 → metadata.inference
+  - config.vocab_size         → metadata.vocab_size
+  - config.hidden_size        → metadata.hidden_size
+  - config.num_hidden_layers  → metadata.num_hidden_layers
+  - config.num_attention_heads→ metadata.num_attention_heads
+  - config.max_position_embeddings → metadata.max_position_embeddings
+  - safetensors.total         → metadata.safetensors_total
+  - siblings (derived)        → metadata.has_license_file, metadata.has_readme
+  - disabled                  → metadata.disabled
+  - private                   → metadata.private
 
 Usage:
     python huggingface/enrich_hf_metadata.py \\
@@ -124,6 +139,7 @@ def extract_metadata_fields(api: Dict) -> Dict[str, Any]:
     pipeline_tag = api.get("pipeline_tag") or None
     card_data = api.get("cardData") or {}
     config = api.get("config") or {}
+    safetensors = api.get("safetensors") or {}
 
     # Tags: strip noise, keep language codes, arxiv refs, and task tags
     raw_tags: List[str] = api.get("tags") or []
@@ -140,10 +156,17 @@ def extract_metadata_fields(api: Dict) -> Dict[str, Any]:
     # Architectures list
     architectures = config.get("architectures") or None
 
+    # Siblings: scan once to derive file presence flags
+    siblings: List[Dict] = api.get("siblings") or []
+    sibling_names = {(s.get("rfilename") or "").upper() for s in siblings}
+    has_license_file = bool(sibling_names & {"LICENSE", "LICENSE.TXT", "LICENSE.MD"})
+    has_readme = "README.MD" in sibling_names
+
     fields: Dict[str, Any] = {
+        # Existing fields
         "pipeline_tag": pipeline_tag,
         "modality": derive_modality(pipeline_tag),
-        "num_parameters": derive_num_parameters(api.get("safetensors")),
+        "num_parameters": derive_num_parameters(safetensors if safetensors else None),
         "release_date": api.get("createdAt") or None,
         "last_modified": api.get("lastModified") or None,
         "library_name": api.get("library_name") or None,
@@ -152,8 +175,32 @@ def extract_metadata_fields(api: Dict) -> Dict[str, Any]:
         "architectures": architectures,
         "model_type": config.get("model_type") or None,
         "tags": filtered_tags or None,
+        # New: model lineage
+        "base_model": card_data.get("base_model") or None,
+        "fine_tuned_from": card_data.get("fine-tuned-from") or None,
+        # New: training/eval metadata from card front-matter
+        "datasets": card_data.get("datasets") or None,
+        "eval_metrics": card_data.get("metrics") or None,
+        # New: HF platform signals
+        "trending_score": api.get("trendingScore") or None,
+        "inference": api.get("inference") if api.get("inference") is not None else None,
+        # New: architecture hyperparameters
+        "vocab_size": config.get("vocab_size") or None,
+        "hidden_size": config.get("hidden_size") or None,
+        "num_hidden_layers": config.get("num_hidden_layers") or None,
+        "num_attention_heads": config.get("num_attention_heads") or None,
+        "max_position_embeddings": config.get("max_position_embeddings") or None,
+        # New: file/size info
+        "safetensors_total": safetensors.get("total") or None,
+        "has_license_file": has_license_file,
+        "has_readme": has_readme,
+        # New: model status
+        "disabled": api.get("disabled") if api.get("disabled") is not None else None,
+        "private": api.get("private") if api.get("private") is not None else None,
     }
-    # Remove keys that are None so we don't overwrite existing data with nulls
+    # Remove keys that are None so we don't overwrite existing data with nulls.
+    # Note: boolean False values (gated=False, disabled=False, etc.) are kept
+    # because False is not None.
     return {k: v for k, v in fields.items() if v is not None}
 
 
@@ -251,7 +298,11 @@ def main() -> None:
     print(f"Loaded {len(records)} records from: {in_path}")
     print(f"Writing to: {out_path}")
     print(f"Fields: pipeline_tag, modality, num_parameters, release_date, last_modified, "
-          f"library_name, gated, language, architectures, model_type, tags")
+          f"library_name, gated, language, architectures, model_type, tags, "
+          f"base_model, fine_tuned_from, datasets, eval_metrics, trending_score, inference, "
+          f"vocab_size, hidden_size, num_hidden_layers, num_attention_heads, "
+          f"max_position_embeddings, safetensors_total, has_license_file, has_readme, "
+          f"disabled, private")
     print(f"Delay: {args.delay}s between calls | Checkpoint every {args.interval} records")
     if args.limit:
         print(f"Limit: processing first {args.limit} records only")

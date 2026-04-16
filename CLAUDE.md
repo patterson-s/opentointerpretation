@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Research project analyzing open-source licensing practices of frontier AI labs on HuggingFace. The pipeline collects model metadata for ~26 orgs, enriches license fields via multi-fallback resolution, adds org HQ country, loads everything into PostgreSQL, and exposes the data through a REST API with a browser-based explorer.
 
+**Current direction:** continuous collection is implemented — `huggingface/collect.py` appends new models incrementally on each run, and the web UI displays the last collection date via `GET /api/status`.
+
 ## Environment Setup
 
 ```bash
@@ -35,8 +37,20 @@ python db/ingest.py                 # full ingestion (4,258 records total)
 
 # Apply schema migrations (in order for a fresh DB)
 psql -U postgres -d opentointerpretation -f db/migrate_add_license_text.sql
+psql -U postgres -d opentointerpretation -f db/migrate_add_collection_runs.sql
 psql -U postgres -d opentointerpretation -f db/migrate_research_tables.sql
 psql -U postgres -d opentointerpretation -f db/migrate_add_geocoords.sql
+psql -U postgres -d opentointerpretation -f db/migrate_add_model_card.sql
+
+# Update existing rows with new metadata fields (after re-running enrich_hf_metadata.py)
+python db/update_metadata.py --input huggingface/hf_6jan2026_meta_v2.json
+python db/update_metadata.py --input huggingface/hf_6jan2026_meta_v2.json --dry-run  # preview
+
+# Fetch raw model card text (README.md) for all HF models into model_card_raw column
+python huggingface/fetch_model_cards.py               # all missing rows (~7h for 72K models)
+python huggingface/fetch_model_cards.py --limit 10    # test first 10
+python huggingface/fetch_model_cards.py --model-id meta-llama/Llama-2-7b-hf  # single model
+python huggingface/fetch_model_cards.py --force       # re-fetch all
 ```
 
 ### Research pipeline (company office locations)
@@ -49,6 +63,17 @@ python research/pipeline.py --max-sources 5 --dry-run  # preview without writing
 python research/geocode.py              # geocode all findings missing coordinates (Nominatim/OSM)
 python research/geocode.py --force      # re-geocode all rows
 python research/geocode.py --dry-run    # print without writing
+```
+
+### Incremental collection (continuous)
+```bash
+# Run this to add any new HF models not yet in the DB (license + metadata enriched)
+python huggingface/collect.py              # full run; inserts new models directly to DB
+python huggingface/collect.py --sample     # count new models without inserting
+python huggingface/collect.py --limit 10   # test with first 10 new models
+python huggingface/collect.py --dry-run    # preview without writing to DB
+# Requires: db/migrate_add_collection_runs.sql applied first
+# API status: GET /api/status → {last_collected_at, new_models_added, total_models_in_db}
 ```
 
 ### Fetch / enrich HuggingFace data
@@ -104,6 +129,7 @@ hf_pipeline.py → enrich_hf_licenses.py → add_country_hq.py ─┐
 - `api/routers/analysis.py` — aggregation endpoints:
   - `GET /api/analysis/model-releases-by-country` / `model-releases-by-company`
   - `GET /api/analysis/historical-total` / `historical-by-company` / `historical-by-country` — monthly releases using `models.release_date`; flat rows that JS pivots into Chart.js datasets
+- `api/routers/status.py` — `GET /api/status` → `{last_collected_at, new_models_added, total_models_seen, total_models_in_db, status}` from the most recent `collection_runs` row
 - `api/routers/research.py` — research provenance endpoints:
   - `GET /api/research/map` — all geocoded findings for map visualization (lat/lng populated)
   - `GET /api/research/companies/{company_id}/sources` — sources fetched for a company
@@ -180,7 +206,11 @@ All scripts write a `.ckpt.json` checkpoint on each interval for resume support.
 
 For `license == "other"`: additional resolution via README body links and TERMS/EULA sibling files — maps to vendor slugs like `proprietary:nvidia-aiml`.
 
-**`enrich_hf_metadata.py`** — fetches `/api/models/{id}` per model and extracts `pipeline_tag`, derived `modality`, `num_parameters` in billions (from `safetensors.parameters`, not bytes), `release_date`, `last_modified`, `library_name`, `gated`, `language`, `architectures`, `model_type`.
+**`enrich_hf_metadata.py`** — fetches `/api/models/{id}` per model and extracts `pipeline_tag`, derived `modality`, `num_parameters` in billions (from `safetensors.parameters`, not bytes), `release_date`, `last_modified`, `library_name`, `gated`, `language`, `architectures`, `model_type`. Also extracts: `base_model`, `fine_tuned_from`, `datasets`, `eval_metrics`, `trending_score`, `inference`, `vocab_size`, `hidden_size`, `num_hidden_layers`, `num_attention_heads`, `max_position_embeddings`, `safetensors_total`, `has_license_file`, `has_readme`, `disabled`, `private`.
+
+**`fetch_model_cards.py`** — DB-direct script (like `fetch_license_texts.py`) that fetches the raw README.md for each HF model and writes it to `models.model_card_raw`. `model_card_fetched_at` serves as the checkpoint column — rows with NULL are fetched on each run.
+
+**`db/update_metadata.py`** — merges new metadata fields into existing rows using PostgreSQL JSONB `||` operator. Use after re-running `enrich_hf_metadata.py` to update an existing DB without full re-ingestion. Additive by default (existing keys not overwritten); pass `--overwrite` to replace.
 
 ### License overrides (`huggingface/hf_pipeline.py`)
 - `MODEL_LICENSE_OVERRIDES` — per-model-id corrections (AI21, NVIDIA, Qwen 1.5, etc.)

@@ -75,9 +75,25 @@ def get_company(company_id: int) -> dict:
         )
         license_dist = [dict(row) for row in cur.fetchall()]
 
+        # Typology distribution
+        cur.execute(
+            """
+            SELECT
+                COALESCE(metadata->>'typology_type', 'unknown') AS typology_type,
+                COUNT(*) AS count
+            FROM models
+            WHERE company_id = %s
+            GROUP BY 1
+            ORDER BY count DESC
+            """,
+            (company_id,),
+        )
+        typology_dist = [dict(row) for row in cur.fetchall()]
+
     result = dict(company)
     result["model_count"] = counts["model_count"]
     result["hf_count"] = counts["hf_count"]
     result["closed_count"] = counts["closed_count"]
     result["license_distribution"] = license_dist
+    result["typology_distribution"] = typology_dist
     return result

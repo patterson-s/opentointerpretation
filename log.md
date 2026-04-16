@@ -1,5 +1,60 @@
 # Project Log
 
+## 13 April 2026 (continued, session 8)
+
+### Continuous / Incremental HuggingFace Collection
+
+**Context**
+All HF model data lived in a static JSON snapshot from January 6, 2026. No mechanism existed to add models published after that date without a full re-ingest from a new file. Goal: run a script to append any new models directly to the DB, and display the last collection date in the web UI.
+
+**Database migration (`db/migrate_add_collection_runs.sql`)**
+New `collection_runs` table:
+- `id SERIAL PRIMARY KEY`
+- `started_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `completed_at TIMESTAMPTZ NULL`
+- `status VARCHAR(20) NOT NULL DEFAULT 'running'` — `running` / `completed` / `failed`
+- `total_models_seen INT NULL` — total models found on HF across all orgs this run
+- `new_models_added INT NULL` — models actually inserted (delta from prior runs)
+- `error_message TEXT NULL` — full traceback on failure
+
+**New script: `huggingface/collect.py`**
+Incremental collection script that writes directly to PostgreSQL (no JSON intermediary).
+
+Algorithm:
+1. Insert a `collection_runs` row with `status='running'`
+2. Call `fetch_models()` for all 26 orgs in `ORG_HANDLES` → build `{model_id → record}` dict
+3. Query DB for all existing `model_id` values (`data_source='huggingface'`)
+4. Diff to find new model IDs
+5. For each new model: `apply_manual_corrections()` → `add_country()` → license enrichment (full 5-layer `resolve_license()` chain; `resolve_other_license()` for `license == "other"`) → 0.3s delay → `fetch_hf_model_api()` + `extract_metadata_fields()` → insert via `ON CONFLICT DO NOTHING`
+6. Commit every 50 rows; update `collection_runs` to `completed` on finish; `failed` + traceback on interrupt
+
+Reuses logic imported from:
+- `huggingface/hf_pipeline.py` — `ORG_HANDLES`, `fetch_models`, `apply_manual_corrections`, `add_country`
+- `huggingface/enrich_hf_metadata.py` — `fetch_hf_model_api`, `extract_metadata_fields`
+- `huggingface/enrich_hf_licenses.py` — `resolve_license`, `resolve_other_license`
+- `db/ingest.py` — helpers copied inline: `safe_str`, `safe_int`, `safe_date`, `get_or_create_company`, `get_or_create_license`
+
+CLI flags: `--dry-run` (preview; no writes), `--limit N` (test first N new models), `--sample` (count only; skip enrichment), `--delay FLOAT`
+
+**First sample run result:**
+- 4,616 models seen across 26 orgs (vs. 4,210 in DB)
+- **411 new models** discovered since the Jan 6 snapshot
+
+**API endpoint (`api/routers/status.py`)**
+`GET /api/status` returns:
+- `last_collected_at` — `completed_at` of the most recent run (or `started_at` if still running)
+- `new_models_added` — delta from that run
+- `total_models_seen` — HF org landscape size at time of run
+- `total_models_in_db` — current `COUNT(*)` from `models` where `data_source='huggingface'`
+- `status` — `running` / `completed` / `failed` / `never_run`
+
+**Frontend**
+- `web/index.html` — `<span class="last-updated-badge" id="last-updated-badge">` added to the right side of the `<header>` after `</nav>`
+- `web/style.css` — `.last-updated-badge { margin-left: auto; font-size: 11px; color: var(--gray-400); font-family: var(--font-mono); }`
+- `web/app.js` — `loadStatus()` called at init; shows `Data: Jan 6 2026` when no runs exist; otherwise `Last updated: [date]` with a tooltip showing new models added and total count
+
+---
+
 ## 13 April 2026 (continued, session 7)
 
 ### AI Company Office Research Pipeline + Map Tab

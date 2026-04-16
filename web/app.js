@@ -107,6 +107,15 @@ function renderCompanyDetail(panel, d) {
     </tr>`;
   }).join('');
 
+  const typoDistRows = (d.typology_distribution || []).map(r => {
+    const pct = d.model_count > 0 ? ((r.count / d.model_count) * 100).toFixed(1) : '0.0';
+    return `<tr>
+      <td><span class="typology-type-badge typology-${escHtml(r.typology_type)}">${escHtml(r.typology_type)}</span></td>
+      <td style="text-align:right;font-family:var(--font-mono);color:var(--gray-600)">${r.count}</td>
+      <td style="text-align:right;font-family:var(--font-mono);color:var(--gray-400)">${pct}%</td>
+    </tr>`;
+  }).join('');
+
   panel.innerHTML = `
     <div class="company-header">
       <div class="company-name">${escHtml(d.display_name)}</div>
@@ -132,7 +141,19 @@ function renderCompanyDetail(panel, d) {
       </div>
     </div>
 
-    <div class="section-title">License Distribution</div>
+    <div class="section-title">Typology Breakdown</div>
+    <table class="license-dist-table">
+      <thead>
+        <tr>
+          <th style="text-align:left">Type</th>
+          <th style="text-align:right">Count</th>
+          <th style="text-align:right">%</th>
+        </tr>
+      </thead>
+      <tbody>${typoDistRows}</tbody>
+    </table>
+
+    <div class="section-title" style="margin-top:1.5rem">License Distribution</div>
     <table class="license-dist-table">
       <thead>
         <tr>
@@ -195,6 +216,7 @@ function renderCompanyModelsTable(panel, models, total) {
       <td class="model-id-cell" title="${escHtml(m.model_id)}">${escHtml(variantLabel)}</td>
       <td><span class="models-license-tag">${escHtml(m.license_slug || '—')}</span></td>
       <td>${escHtml(m.modality || '—')}</td>
+      <td>${m.typology_type ? `<span class="typology-type-badge typology-${escHtml(m.typology_type)}">${escHtml(m.typology_type)}</span>` : '—'}</td>
       <td class="num-cell">${params}</td>
       <td class="num-cell">${date}</td>
     </tr>`;
@@ -206,11 +228,11 @@ function renderCompanyModelsTable(panel, models, total) {
     }
     if (unit.type === 'subgroup') {
       const subRows = unit.children.map(c => modelRow(c.model, c.variantLabel, 'model-subgroup-child')).join('');
-      return `<tr class="model-subgroup-header"><td colspan="5">${escHtml(unit.label)}</td></tr>${subRows}`;
+      return `<tr class="model-subgroup-header"><td colspan="6">${escHtml(unit.label)}</td></tr>${subRows}`;
     }
     if (unit.type === 'group') {
       const inner = unit.children.map(renderUnit).join('');
-      return `<tr class="model-group-header"><td colspan="5">${escHtml(unit.label)}</td></tr>${inner}`;
+      return `<tr class="model-group-header"><td colspan="6">${escHtml(unit.label)}</td></tr>${inner}`;
     }
     return '';
   }
@@ -225,7 +247,7 @@ function renderCompanyModelsTable(panel, models, total) {
     <div class="company-models-wrap">
       <table class="models-table company-models-table">
         <thead><tr>
-          <th>Model</th><th>License</th><th>Modality</th><th>Params</th><th>Released</th>
+          <th>Model</th><th>License</th><th>Modality</th><th>Type</th><th>Params</th><th>Released</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -697,7 +719,27 @@ document.getElementById('license-search').addEventListener('input', e => {
 });
 
 
+/* ── Status badge ───────────────────────────────────────────────────────────*/
+async function loadStatus() {
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) return;
+    const d = await res.json();
+    const badge = document.getElementById('last-updated-badge');
+    if (!badge) return;
+    if (!d.last_collected_at) {
+      badge.textContent = 'Data: Jan 6 2026';
+      return;
+    }
+    const dt = new Date(d.last_collected_at);
+    const fmt = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    badge.textContent = `Last updated: ${fmt}`;
+    badge.title = `${d.new_models_added ?? 0} new models added · ${d.total_models_in_db} total`;
+  } catch (_) { /* non-fatal */ }
+}
+
 /* ── Init ───────────────────────────────────────────────────────────────────*/
+loadStatus();
 loadCompanyList().catch(err => {
   console.error('Failed to load companies:', err);
   const ul = document.getElementById('company-list');
@@ -983,15 +1025,23 @@ async function loadModelsFilters() {
     modalitySelect.appendChild(opt);
   });
 
+  const typologySelect = document.getElementById('models-filter-typology');
+  (filters.typology_types || []).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t;
+    opt.textContent = t;
+    typologySelect.appendChild(opt);
+  });
+
   // Filter change → reload list
   ['models-filter-company', 'models-filter-license', 'models-filter-country',
-   'models-filter-source', 'models-filter-modality'].forEach(id => {
+   'models-filter-source', 'models-filter-modality', 'models-filter-typology'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => loadModelsList(0));
   });
 
   document.getElementById('models-clear-filters').addEventListener('click', () => {
     ['models-filter-company', 'models-filter-license', 'models-filter-country',
-     'models-filter-source', 'models-filter-modality'].forEach(id => {
+     'models-filter-source', 'models-filter-modality', 'models-filter-typology'].forEach(id => {
       document.getElementById(id).value = '';
     });
     loadModelsList(0);
@@ -1013,19 +1063,21 @@ async function loadModelsList(page = 0) {
   const country  = document.getElementById('models-filter-country').value;
   const source   = document.getElementById('models-filter-source').value;
   const modality = document.getElementById('models-filter-modality').value;
+  const typology = document.getElementById('models-filter-typology').value;
 
-  if (company)  params.set('company_id',   company);
-  if (license)  params.set('license_slug', license);
-  if (country)  params.set('country_hq',   country);
-  if (source)   params.set('data_source',  source);
-  if (modality) params.set('modality',     modality);
+  if (company)  params.set('company_id',    company);
+  if (license)  params.set('license_slug',  license);
+  if (country)  params.set('country_hq',    country);
+  if (source)   params.set('data_source',   source);
+  if (modality) params.set('modality',      modality);
+  if (typology) params.set('typology_type', typology);
 
   // Show table, hide detail
   document.getElementById('models-table-view').style.display = '';
   document.getElementById('models-detail-view').style.display = 'none';
 
   const tbody = document.getElementById('models-tbody');
-  tbody.innerHTML = '<tr><td colspan="8" class="models-loading">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="models-loading">Loading…</td></tr>';
 
   try {
     const data = await fetch(`/api/models?${params}`).then(r => r.json());
@@ -1034,14 +1086,14 @@ async function loadModelsList(page = 0) {
       `${data.total.toLocaleString()} model${data.total !== 1 ? 's' : ''}`;
   } catch (err) {
     console.error('Failed to load models:', err);
-    tbody.innerHTML = '<tr><td colspan="8" class="models-loading">Failed to load models</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="models-loading">Failed to load models</td></tr>';
   }
 }
 
 function renderModelsTable(models, total, page) {
   const tbody = document.getElementById('models-tbody');
   if (!models || models.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="models-empty">No models match current filters</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="models-empty">No models match current filters</td></tr>';
     document.getElementById('models-pagination').innerHTML = '';
     return;
   }
@@ -1061,6 +1113,7 @@ function renderModelsTable(models, total, page) {
       <td>${escHtml(m.company_name || '—')}</td>
       <td><span class="models-license-tag">${escHtml(m.license_slug || '—')}</span></td>
       <td>${escHtml(m.modality || '—')}</td>
+      <td>${m.typology_type ? `<span class="typology-type-badge typology-${escHtml(m.typology_type)}">${escHtml(m.typology_type)}</span>` : '—'}</td>
       <td class="num-cell">${params}</td>
       <td class="num-cell">${date}</td>
       <td class="num-cell">${downloads}</td>
@@ -1204,6 +1257,28 @@ function renderModelDetail(container, d) {
     ${tagsHtml ? `
     <div class="section-title" style="margin-top:1rem">Tags</div>
     <div class="model-tags">${tagsHtml}</div>
+    ` : ''}
+
+    ${meta.typology_type ? `
+    <div class="section-title" style="margin-top:1rem">Typology Classification</div>
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-label">Type</div>
+        <div class="stat-value small"><span class="typology-type-badge typology-${escHtml(meta.typology_type)}">${escHtml(meta.typology_type)}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Confidence</div>
+        <div class="stat-value small">${escHtml(meta.typology_confidence || '—')}</div>
+      </div>
+    </div>
+    ${meta.typology_tags && meta.typology_tags.length ? `
+    <div class="model-tags" style="margin-top:.5rem">
+      ${meta.typology_tags.map(t => `<span class="model-tag typology-tag">${escHtml(t)}</span>`).join('')}
+    </div>` : ''}
+    ${meta.typology_rationale ? `
+    <div class="section-title" style="margin-top:.75rem">Classification Rationale</div>
+    <p class="model-meta-text">${escHtml(meta.typology_rationale)}</p>
+    ` : ''}
     ` : ''}
   `;
 
