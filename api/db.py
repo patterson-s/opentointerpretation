@@ -20,6 +20,11 @@ load_dotenv(_ENV_PATH, override=True)
 
 
 def _connect() -> psycopg2.extensions.connection:
+    # Production: Neon (or any hosted Postgres) supplies a full DATABASE_URL.
+    # Local dev: fall back to individual PG* env vars from .env.
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        return psycopg2.connect(db_url)
     return psycopg2.connect(
         host=os.environ["PGHOST"],
         port=int(os.environ.get("PGPORT", 5432)),

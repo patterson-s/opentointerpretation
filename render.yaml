@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: opentointerpretation
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: BASIC_AUTH_USERNAME
+        value: spatt
+      - key: BASIC_AUTH_PASSWORD
+        value: spatt
+      - key: DATABASE_URL
+        sync: false          # paste from Neon dashboard after project creation
+      - key: COHERE_API_KEY
+        sync: false          # needed for /api/research/query RAG endpoint
+      - key: ANTHROPIC_API_KEY
+        sync: false          # optional; set if needed
+      - key: SERPER_API_KEY
+        sync: false          # optional; needed only for research pipeline re-runs
