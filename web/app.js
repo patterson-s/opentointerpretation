@@ -6,8 +6,8 @@
  *   No JS changes needed for basic "coming soon" sections.
  */
 
-const SECTIONS = ['companies', 'models', 'countries', 'licenses', 'analysis', 'map'];
-const DEFAULT_SECTION = 'companies';
+const SECTIONS = ['home', 'companies', 'models', 'countries', 'licenses', 'analysis', 'map'];
+const DEFAULT_SECTION = 'home';
 
 function activateSection(name) {
   if (!SECTIONS.includes(name)) name = DEFAULT_SECTION;
@@ -736,6 +736,135 @@ async function loadStatus() {
     badge.textContent = `Last updated: ${fmt}`;
     badge.title = `${d.new_models_added ?? 0} new models added · ${d.total_models_in_db} total`;
   } catch (_) { /* non-fatal */ }
+}
+
+/* ── Home section ───────────────────────────────────────────────────────────*/
+
+let homeLoaded = false;
+
+function fmtWeekRange(start, end) {
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end   + 'T00:00:00');
+  const opts = { month: 'short', day: 'numeric' };
+  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', {...opts, year: 'numeric'})}`;
+}
+
+function renderDigestHero(d) {
+  const topCompany  = (d.by_company  || [])[0];
+  const topLicense  = (d.by_license  || [])[0];
+  const topModality = (d.by_modality || [])[0];
+
+  return `
+    <div class="home-digest-header">
+      <span class="home-week-label">Week of ${fmtWeekRange(d.week_start, d.week_end)}</span>
+      <span class="home-generated">Generated ${new Date(d.generated_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}</span>
+    </div>
+    <div class="home-stat-cards">
+      <div class="home-stat-card">
+        <div class="home-stat-icon">📦</div>
+        <div class="home-stat-value">${d.new_models}</div>
+        <div class="home-stat-label">New models</div>
+      </div>
+      <div class="home-stat-card">
+        <div class="home-stat-icon">🏢</div>
+        <div class="home-stat-value">${topCompany ? topCompany.name : '—'}</div>
+        <div class="home-stat-label">Top org${topCompany ? ` (${topCompany.count})` : ''}</div>
+      </div>
+      <div class="home-stat-card">
+        <div class="home-stat-icon">📄</div>
+        <div class="home-stat-value">${topLicense ? topLicense.slug : '—'}</div>
+        <div class="home-stat-label">Top license${topLicense ? ` (${topLicense.count})` : ''}</div>
+      </div>
+      ${topModality ? `
+      <div class="home-stat-card">
+        <div class="home-stat-icon">🔬</div>
+        <div class="home-stat-value">${topModality.modality}</div>
+        <div class="home-stat-label">Top modality${topModality ? ` (${topModality.count})` : ''}</div>
+      </div>` : ''}
+    </div>
+    ${d.narrative ? `<div class="home-narrative">${d.narrative}</div>` : ''}
+    ${renderCompanyTable(d.by_company || [])}
+  `;
+}
+
+function renderCompanyTable(byCompany) {
+  if (!byCompany.length) return '';
+  const rows = byCompany.map(c =>
+    `<tr><td>${c.name}</td><td class="home-tbl-num">${c.count}</td></tr>`
+  ).join('');
+  return `
+    <div class="home-breakdown">
+      <div class="home-breakdown-title">New models by organisation</div>
+      <table class="home-tbl">
+        <thead><tr><th>Organisation</th><th>Models</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function loadHomeSection() {
+  const section = document.getElementById('section-home');
+  if (!section || !section.classList.contains('active') || homeLoaded) return;
+  homeLoaded = true;
+
+  const latestEl  = document.getElementById('home-latest');
+  const historyEl = document.getElementById('home-history');
+  const histListEl = document.getElementById('home-history-list');
+
+  try {
+    const res = await fetch('/api/home');
+    if (!res.ok) throw new Error(`/api/home returned ${res.status}`);
+    const data = await res.json();
+
+    if (!data.latest_digest) {
+      latestEl.innerHTML = `
+        <div class="home-empty">
+          <div class="home-empty-icon">📭</div>
+          <div class="home-empty-title">No digest yet</div>
+          <div class="home-empty-sub">The first weekly report will appear after Monday's automated collection run.<br>
+          You can also trigger it manually via <strong>GitHub → Actions → Run workflow</strong>.</div>
+          <div class="home-collection-status">
+            ${data.collection_status.total_all_models
+              ? `<span>${data.collection_status.total_all_models.toLocaleString()} models in database</span>`
+              : ''}
+          </div>
+        </div>`;
+      return;
+    }
+
+    latestEl.innerHTML = renderDigestHero(data.latest_digest);
+
+    // Past digests accordion (skip the first/latest one already shown)
+    const past = data.history.filter(h => h.id !== data.latest_digest.id);
+    if (past.length > 0) {
+      historyEl.style.display = '';
+      past.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'home-history-item';
+        item.innerHTML = `
+          <div class="home-history-row" data-id="${d.id}">
+            <span class="home-history-week">${fmtWeekRange(d.week_start, d.week_end)}</span>
+            <span class="home-history-count">${d.new_models} new models</span>
+            <span class="home-history-toggle">▼</span>
+          </div>
+          <div class="home-history-body" style="display:none">
+            ${renderDigestHero(d)}
+          </div>`;
+        item.querySelector('.home-history-row').addEventListener('click', () => {
+          const body = item.querySelector('.home-history-body');
+          const arrow = item.querySelector('.home-history-toggle');
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : '';
+          arrow.textContent = open ? '▼' : '▲';
+        });
+        histListEl.appendChild(item);
+      });
+    }
+  } catch (err) {
+    latestEl.innerHTML = `<div style="padding:2rem;color:#ef4444">Failed to load home data: ${err.message}</div>`;
+    console.error('Home load error:', err);
+  }
 }
 
 /* ── Init ───────────────────────────────────────────────────────────────────*/
@@ -1620,3 +1749,6 @@ const setupMapSection = () => {
 
 setupMapSection();
 window.addEventListener('hashchange', () => setTimeout(setupMapSection, 50));
+
+loadHomeSection();
+window.addEventListener('hashchange', () => setTimeout(loadHomeSection, 50));

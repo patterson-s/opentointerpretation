@@ -20,7 +20,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.routers import companies, analysis, licenses, models, research, status
+from api.routers import companies, analysis, home, licenses, models, research, status
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +69,7 @@ app.add_middleware(
 )
 
 # API routers
+app.include_router(home.router)
 app.include_router(companies.router)
 app.include_router(analysis.router)
 app.include_router(licenses.router)

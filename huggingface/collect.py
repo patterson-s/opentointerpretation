@@ -83,6 +83,9 @@ def safe_date(val: Any) -> date | None:
 # ── Connection ──────────────────────────────────────────────────────────────
 
 def get_conn() -> psycopg2.extensions.connection:
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        return psycopg2.connect(db_url)
     return psycopg2.connect(
         host=os.environ["PGHOST"],
         port=int(os.environ.get("PGPORT", 5432)),
