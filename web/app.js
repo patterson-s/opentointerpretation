@@ -741,37 +741,19 @@ async function loadStatus() {
 /* ── Home stats ─────────────────────────────────────────────────────────────*/
 
 async function loadHomeStats() {
-  const safe = r => r.ok ? r.json() : null;
-  const [statusResult, companiesResult, licensesResult] = await Promise.allSettled([
-    fetch('/api/status').then(safe),
-    fetch('/api/companies').then(safe),
-    fetch('/api/licenses').then(safe),
-  ]);
-
-  const status    = statusResult.status    === 'fulfilled' ? statusResult.value    : null;
-  const companies = companiesResult.status === 'fulfilled' ? companiesResult.value : null;
-  const licenses  = licensesResult.status  === 'fulfilled' ? licensesResult.value  : null;
-
-  const updatedEl = document.getElementById('home-updated');
-  if (updatedEl && status) {
-    if (status.last_collected_at) {
-      const dt = new Date(status.last_collected_at);
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) return;
+    const d = await res.json();
+    const updatedEl = document.getElementById('home-updated');
+    if (!updatedEl) return;
+    if (d.last_collected_at) {
+      const dt = new Date(d.last_collected_at);
       updatedEl.textContent = `Last updated: ${dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else {
       updatedEl.textContent = 'Data: Jan 6, 2026';
     }
-  }
-
-  const modelsEl = document.getElementById('home-stat-models');
-  if (modelsEl && status && status.total_models_in_db) {
-    modelsEl.textContent = status.total_models_in_db.toLocaleString();
-  }
-
-  const orgsEl = document.getElementById('home-stat-orgs');
-  if (orgsEl && companies) orgsEl.textContent = companies.length;
-
-  const licEl = document.getElementById('home-stat-licenses');
-  if (licEl && licenses) licEl.textContent = licenses.length;
+  } catch (_) {}
 }
 
 /* ── Init ───────────────────────────────────────────────────────────────────*/
