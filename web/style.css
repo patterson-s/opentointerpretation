@@ -126,6 +126,7 @@ main {
 .home-landing {
   width: 100%;
   max-width: 560px;
+  margin: 0 auto;
   padding: 4rem 2rem;
 }
 
@@ -214,6 +215,10 @@ main {
   background: var(--gray-200);
   margin: 0 2rem;
   flex-shrink: 0;
+}
+
+.home-index {
+  display: block;
 }
 
 .home-index-label {
