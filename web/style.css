@@ -138,65 +138,23 @@ main {
   font-style: italic;
 }
 
-/* Digest hero */
-.home-digest-header {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.home-week-label {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-.home-generated {
-  font-size: 11px;
-  color: var(--gray-400);
-  font-family: var(--font-mono);
-}
-
-/* Stat cards */
-.home-stat-cards {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-}
-.home-stat-card {
-  flex: 1;
-  min-width: 140px;
-  background: #fff;
+/* Site directory */
+.home-directory {
+  padding: 1rem 1.25rem;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
-  padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-}
-.home-stat-icon  { font-size: 18px; margin-bottom: .35rem; }
-.home-stat-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--gray-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.home-stat-label { font-size: 11px; color: var(--gray-400); margin-top: .2rem; }
-
-/* Narrative */
-.home-narrative {
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--gray-800);
-  max-width: 720px;
-  background: var(--gray-50);
-  border-left: 3px solid var(--accent);
-  padding: .9rem 1.1rem;
-  border-radius: 0 var(--radius) var(--radius) 0;
   margin-bottom: 1.5rem;
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.7;
 }
+.home-directory p { margin: 0 0 .6rem; }
+.home-directory ul { margin: 0; padding-left: 1.2rem; }
+.home-directory li { margin-bottom: .2rem; }
+.home-directory a { color: var(--accent); text-decoration: none; }
+.home-directory a:hover { text-decoration: underline; }
 
-/* Company breakdown table */
+/* Weekly org breakdown table */
 .home-breakdown {
   margin-top: .5rem;
 }
@@ -227,18 +185,11 @@ main {
 
 /* Empty state */
 .home-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 4rem 2rem;
-  text-align: center;
+  padding: 1.5rem 0;
+  color: var(--gray-400);
 }
-.home-empty-icon  { font-size: 40px; }
-.home-empty-title { font-size: 18px; font-weight: 600; color: var(--gray-800); }
-.home-empty-sub   { font-size: 13px; color: var(--gray-400); line-height: 1.6; max-width: 480px; }
-.home-collection-status { font-size: 12px; color: var(--gray-400); font-family: var(--font-mono); }
+.home-empty-title { font-size: 14px; font-weight: 600; margin-bottom: .25rem; }
+.home-empty-sub   { font-size: 13px; line-height: 1.6; }
 
 /* History accordion */
 .home-history { margin-top: .5rem; }

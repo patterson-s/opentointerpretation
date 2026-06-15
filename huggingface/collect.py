@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Incremental HuggingFace model collection.
 
@@ -28,6 +29,9 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+
+# Force UTF-8 stdout so Unicode characters don't crash on Windows cp1252 consoles
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # Allow running as a script from the project root
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -358,9 +362,9 @@ def run_collection(
                     did_insert = insert_hf_model(cur, rec, company_cache, license_cache)
                     if did_insert:
                         added += 1
-                        print(f" ✓ license={rec.get('license', '-')}", flush=True)
+                        print(f" [+] license={rec.get('license', '-')}", flush=True)
                     else:
-                        print(f" (conflict skip)", flush=True)
+                        print(f" [skip]", flush=True)
                 else:
                     print(f" [dry-run] license={rec.get('license', '-')}", flush=True)
 

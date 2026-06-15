@@ -749,52 +749,14 @@ function fmtWeekRange(start, end) {
   return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', {...opts, year: 'numeric'})}`;
 }
 
-function renderDigestHero(d) {
-  const topCompany  = (d.by_company  || [])[0];
-  const topLicense  = (d.by_license  || [])[0];
-  const topModality = (d.by_modality || [])[0];
-
-  return `
-    <div class="home-digest-header">
-      <span class="home-week-label">Week of ${fmtWeekRange(d.week_start, d.week_end)}</span>
-      <span class="home-generated">Generated ${new Date(d.generated_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}</span>
-    </div>
-    <div class="home-stat-cards">
-      <div class="home-stat-card">
-        <div class="home-stat-icon">📦</div>
-        <div class="home-stat-value">${d.new_models}</div>
-        <div class="home-stat-label">New models</div>
-      </div>
-      <div class="home-stat-card">
-        <div class="home-stat-icon">🏢</div>
-        <div class="home-stat-value">${topCompany ? topCompany.name : '—'}</div>
-        <div class="home-stat-label">Top org${topCompany ? ` (${topCompany.count})` : ''}</div>
-      </div>
-      <div class="home-stat-card">
-        <div class="home-stat-icon">📄</div>
-        <div class="home-stat-value">${topLicense ? topLicense.slug : '—'}</div>
-        <div class="home-stat-label">Top license${topLicense ? ` (${topLicense.count})` : ''}</div>
-      </div>
-      ${topModality ? `
-      <div class="home-stat-card">
-        <div class="home-stat-icon">🔬</div>
-        <div class="home-stat-value">${topModality.modality}</div>
-        <div class="home-stat-label">Top modality${topModality ? ` (${topModality.count})` : ''}</div>
-      </div>` : ''}
-    </div>
-    ${d.narrative ? `<div class="home-narrative">${d.narrative}</div>` : ''}
-    ${renderCompanyTable(d.by_company || [])}
-  `;
-}
-
-function renderCompanyTable(byCompany) {
-  if (!byCompany.length) return '';
-  const rows = byCompany.map(c =>
-    `<tr><td>${c.name}</td><td class="home-tbl-num">${c.count}</td></tr>`
-  ).join('');
+function renderWeeklyOrgTable(d) {
+  const byCompany = d.by_company || [];
+  const rows = byCompany.length
+    ? byCompany.map(c => `<tr><td>${c.name}</td><td class="home-tbl-num">${c.count}</td></tr>`).join('')
+    : '<tr><td colspan="2" style="color:var(--gray-400)">No new models this week</td></tr>';
   return `
     <div class="home-breakdown">
-      <div class="home-breakdown-title">New models by organisation</div>
+      <div class="home-breakdown-title">New models this week — ${fmtWeekRange(d.week_start, d.week_end)}</div>
       <table class="home-tbl">
         <thead><tr><th>Organisation</th><th>Models</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -820,20 +782,13 @@ async function loadHomeSection() {
     if (!data.latest_digest) {
       latestEl.innerHTML = `
         <div class="home-empty">
-          <div class="home-empty-icon">📭</div>
-          <div class="home-empty-title">No digest yet</div>
-          <div class="home-empty-sub">The first weekly report will appear after Monday's automated collection run.<br>
-          You can also trigger it manually via <strong>GitHub → Actions → Run workflow</strong>.</div>
-          <div class="home-collection-status">
-            ${data.collection_status.total_all_models
-              ? `<span>${data.collection_status.total_all_models.toLocaleString()} models in database</span>`
-              : ''}
-          </div>
+          <div class="home-empty-title">No weekly data yet</div>
+          <div class="home-empty-sub">The first report will appear after Monday's automated collection run.</div>
         </div>`;
       return;
     }
 
-    latestEl.innerHTML = renderDigestHero(data.latest_digest);
+    latestEl.innerHTML = renderWeeklyOrgTable(data.latest_digest);
 
     // Past digests accordion (skip the first/latest one already shown)
     const past = data.history.filter(h => h.id !== data.latest_digest.id);
@@ -849,7 +804,7 @@ async function loadHomeSection() {
             <span class="home-history-toggle">▼</span>
           </div>
           <div class="home-history-body" style="display:none">
-            ${renderDigestHero(d)}
+            ${renderWeeklyOrgTable(d)}
           </div>`;
         item.querySelector('.home-history-row').addEventListener('click', () => {
           const body = item.querySelector('.home-history-body');

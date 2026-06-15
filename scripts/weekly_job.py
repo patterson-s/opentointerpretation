@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Weekly model collection + digest generation.
 
@@ -7,8 +8,7 @@ Can also be triggered manually:
     python scripts/weekly_job.py
 
 Requires env vars:
-    DATABASE_URL       — Neon/PostgreSQL connection string
-    ANTHROPIC_API_KEY  — for Claude narrative generation
+    DATABASE_URL  — Neon/PostgreSQL connection string
 """
 
 from __future__ import annotations
@@ -17,6 +17,9 @@ import json
 import os
 import subprocess
 import sys
+
+# Force UTF-8 output so Unicode characters don't crash on Windows cp1252 consoles
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -76,9 +79,9 @@ def fetch_new_models(conn: psycopg2.extensions.connection) -> list[dict]:
             FROM models m
             LEFT JOIN companies c ON c.id = m.company_id
             LEFT JOIN licenses  l ON l.id = m.license_id
-            WHERE m.created_at >= NOW() - INTERVAL '7 days'
+            WHERE m.release_date >= CURRENT_DATE - INTERVAL '7 days'
               AND m.data_source = 'huggingface'
-            ORDER BY m.created_at DESC
+            ORDER BY m.release_date DESC
             """
         )
         return [dict(r) for r in cur.fetchall()]
@@ -121,68 +124,7 @@ def compute_stats(models: list[dict]) -> dict:
     }
 
 
-# ── Step 4: Generate narrative with Claude ───────────────────────────────────
-
-def generate_narrative(new_models_count: int, stats: dict) -> str:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        print("ANTHROPIC_API_KEY not set — skipping narrative generation")
-        return ""
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-
-        stats_text = (
-            f"Total new models: {new_models_count}\n"
-            f"By company (top 5): "
-            + ", ".join(
-                f"{c['name']} ({c['count']})"
-                for c in stats["by_company"][:5]
-            )
-            + f"\nBy license (top 3): "
-            + ", ".join(
-                f"{c['slug']} ({c['count']})"
-                for c in stats["by_license"][:3]
-            )
-            + f"\nBy modality: "
-            + ", ".join(
-                f"{c['modality']} ({c['count']})"
-                for c in stats["by_modality"][:4]
-            )
-        )
-
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday() + 7)
-        week_end = week_start + timedelta(days=6)
-
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=300,
-            temperature=0.7,
-            system=(
-                "You are a concise analyst summarising weekly AI model releases "
-                "for a research audience. Write in present tense, factual tone. "
-                "Do not use bullet points or headers."
-            ),
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"Write a 3-sentence digest of AI model releases for the week of "
-                    f"{week_start.strftime('%B %d')}–{week_end.strftime('%B %d, %Y')}. "
-                    f"Base it on these statistics:\n\n{stats_text}\n\n"
-                    "Focus on notable trends, leading organisations, and licensing patterns."
-                ),
-            }],
-        )
-        return response.content[0].text.strip()
-
-    except Exception as exc:
-        print(f"WARNING: narrative generation failed — {exc}")
-        return ""
-
-
-# ── Step 5: Upsert digest into DB ────────────────────────────────────────────
+# ── Step 4: Upsert digest into DB ────────────────────────────────────────────
 
 def save_digest(
     conn: psycopg2.extensions.connection,
@@ -234,7 +176,7 @@ def main() -> None:
 
     print()
     print("=" * 60)
-    print(f"STEP 2: Generating digest for {week_start} → {week_end}")
+    print(f"STEP 2: Generating digest for {week_start} -> {week_end}")
     print("=" * 60)
 
     conn = get_conn()
@@ -249,14 +191,8 @@ def main() -> None:
         # Step 3: stats
         stats = compute_stats(new_models)
 
-        # Step 4: narrative
-        print("  Generating narrative via Claude…")
-        narrative = generate_narrative(len(new_models), stats)
-        if narrative:
-            print(f"  Narrative: {narrative[:80]}…")
-
-        # Step 5: save
-        save_digest(conn, week_start, week_end, len(new_models), stats, narrative)
+        # Step 4: save
+        save_digest(conn, week_start, week_end, len(new_models), stats, "")
 
     finally:
         conn.close()
