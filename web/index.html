@@ -30,30 +30,64 @@
 
     <!-- Home section -->
     <section id="section-home" class="section">
-      <div class="home-container">
+      <div class="home-landing">
 
-        <!-- Static site directory -->
-        <div class="home-directory">
-          <p>Tracks open-source licensing practices of frontier AI labs on HuggingFace (~26 orgs, 72K+ models).</p>
-          <ul>
-            <li><a href="#companies">Companies</a> — browse AI labs and their model portfolios</li>
-            <li><a href="#models">Models</a> — search and filter all tracked models</li>
-            <li><a href="#licenses">Licenses</a> — explore license terms and adoption</li>
-            <li><a href="#analysis">Analysis</a> — snapshot and historical release charts</li>
-            <li><a href="#map">Map</a> — company office locations</li>
-          </ul>
+        <div class="home-hero">
+          <div class="home-title">
+            <span class="home-title-line1">Open to</span>
+            <span class="home-title-line2">Interpretation</span>
+          </div>
+          <p class="home-subtitle">A repository of open weight licenses for generative AI models.</p>
         </div>
 
-        <!-- Latest weekly org table -->
-        <div id="home-latest" class="home-latest">
-          <div class="home-loading">Loading…</div>
+        <hr class="home-divider" />
+
+        <div class="home-meta">
+          <span class="home-updated" id="home-updated">—</span>
         </div>
 
-        <!-- Past digests accordion -->
-        <div id="home-history" class="home-history" style="display:none">
-          <div class="home-history-header">Past weeks</div>
-          <div id="home-history-list"></div>
+        <div class="home-stats">
+          <div class="home-stat">
+            <span class="home-stat-num" id="home-stat-models">—</span>
+            <span class="home-stat-label">Models</span>
+          </div>
+          <div class="home-stat-sep"></div>
+          <div class="home-stat">
+            <span class="home-stat-num" id="home-stat-orgs">—</span>
+            <span class="home-stat-label">Organisations</span>
+          </div>
+          <div class="home-stat-sep"></div>
+          <div class="home-stat">
+            <span class="home-stat-num" id="home-stat-licenses">—</span>
+            <span class="home-stat-label">Licenses</span>
+          </div>
         </div>
+
+        <hr class="home-divider" />
+
+        <nav class="home-index">
+          <div class="home-index-label">Sections</div>
+          <div class="home-index-item">
+            <a href="#companies" class="home-index-name">Companies</a>
+            <span class="home-index-desc">Browse AI labs and their model portfolios</span>
+          </div>
+          <div class="home-index-item">
+            <a href="#models" class="home-index-name">Models</a>
+            <span class="home-index-desc">Search and filter all tracked models</span>
+          </div>
+          <div class="home-index-item">
+            <a href="#licenses" class="home-index-name">Licenses</a>
+            <span class="home-index-desc">Explore license terms and adoption across labs</span>
+          </div>
+          <div class="home-index-item">
+            <a href="#analysis" class="home-index-name">Analysis</a>
+            <span class="home-index-desc">Snapshot and historical model release charts</span>
+          </div>
+          <div class="home-index-item">
+            <a href="#map" class="home-index-name">Map</a>
+            <span class="home-index-desc">Company office locations</span>
+          </div>
+        </nav>
 
       </div>
     </section>

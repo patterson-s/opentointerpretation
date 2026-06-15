@@ -44,7 +44,22 @@
       "Bash(curl -s http://localhost:8080/api/research/map)",
       "Bash(uvicorn api.app:app --port 8080 --reload)",
       "Bash(ls -lh \"C:\\\\Users\\\\spatt\\\\Desktop\\\\opentointerpretation\\\\huggingface\\\\hf_modelcard\"*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "PowerShell($resp = Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/frontend-design/skills/frontend-design/SKILL.md\" -UseBasicParsing; $resp.Content)",
+      "Read(//c/Users/spatt/.claude/plugins/**)",
+      "Read(//c/Users/spatt/.claude/**)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell($resp = Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/frontend-design/package.json\" -UseBasicParsing; $resp.Content)",
+      "PowerShell($resp = Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/frontend-design/skills/frontend-design/LICENSE.txt\" -UseBasicParsing -ErrorAction SilentlyContinue; if \\($resp\\) { $resp.Content } else { \"not found\" })",
+      "PowerShell($resp = Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/plugins/frontend-design/.claude-plugin\" -UseBasicParsing; $resp.Content)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/\" -UseBasicParsing -TimeoutSec 5; \"Status: $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
+      "PowerShell($cred = [Convert]::ToBase64String\\([Text.Encoding]::ASCII.GetBytes\\(\"admin:interpret\"\\)\\); try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/\" -Headers @{Authorization=\"Basic $cred\"} -UseBasicParsing -TimeoutSec 5; \"Status: $\\($r.StatusCode\\); Content-Length: $\\($r.Content.Length\\)\" } catch { \"Error: $_\" })",
+      "PowerShell($cred = [Convert]::ToBase64String\\([Text.Encoding]::ASCII.GetBytes\\(\"spatt:spatt\"\\)\\); try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/\" -Headers @{Authorization=\"Basic $cred\"} -UseBasicParsing -TimeoutSec 5; \"Status: $\\($r.StatusCode\\); Home section present: $\\($r.Content -match 'home-landing'\\)\" } catch { \"Error: $_\" })",
+      "PowerShell($cred = [Convert]::ToBase64String\\([Text.Encoding]::ASCII.GetBytes\\(\"spatt:spatt\"\\)\\); try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/\" -Headers @{Authorization=\"Basic $cred\"} -UseBasicParsing -TimeoutSec 5; $r.Content -match 'home-directory|home-latest|home-history' } catch { \"Error: $_\" })"
     ]
   }
 }

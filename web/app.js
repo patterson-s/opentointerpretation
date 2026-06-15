@@ -738,103 +738,51 @@ async function loadStatus() {
   } catch (_) { /* non-fatal */ }
 }
 
-/* ── Home section ───────────────────────────────────────────────────────────*/
+/* ── Home stats ─────────────────────────────────────────────────────────────*/
 
-let homeLoaded = false;
-
-function fmtWeekRange(start, end) {
-  const s = new Date(start + 'T00:00:00');
-  const e = new Date(end   + 'T00:00:00');
-  const opts = { month: 'short', day: 'numeric' };
-  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', {...opts, year: 'numeric'})}`;
-}
-
-function renderWeeklyOrgTable(d) {
-  const byCompany = d.by_company || [];
-  const rows = byCompany.length
-    ? byCompany.map(c => `<tr><td>${c.name}</td><td class="home-tbl-num">${c.count}</td></tr>`).join('')
-    : '<tr><td colspan="2" style="color:var(--gray-400)">No new models this week</td></tr>';
-  return `
-    <div class="home-breakdown">
-      <div class="home-breakdown-title">New models this week — ${fmtWeekRange(d.week_start, d.week_end)}</div>
-      <table class="home-tbl">
-        <thead><tr><th>Organisation</th><th>Models</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function loadHomeSection() {
-  const section = document.getElementById('section-home');
-  if (!section || !section.classList.contains('active') || homeLoaded) return;
-  homeLoaded = true;
-
-  const latestEl  = document.getElementById('home-latest');
-  const historyEl = document.getElementById('home-history');
-  const histListEl = document.getElementById('home-history-list');
-
+async function loadHomeStats() {
   try {
-    const res = await fetch('/api/home');
-    if (!res.ok) throw new Error(`/api/home returned ${res.status}`);
-    const data = await res.json();
-
-    if (!data.latest_digest) {
-      latestEl.innerHTML = `
-        <div class="home-empty">
-          <div class="home-empty-title">No weekly data yet</div>
-          <div class="home-empty-sub">The first report will appear after Monday's automated collection run.</div>
-        </div>`;
-      return;
+    const res = await fetch('/api/status');
+    if (res.ok) {
+      const d = await res.json();
+      const updatedEl = document.getElementById('home-updated');
+      if (updatedEl) {
+        if (d.last_collected_at) {
+          const dt = new Date(d.last_collected_at);
+          const fmt = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          updatedEl.textContent = `Last updated: ${fmt}`;
+        } else {
+          updatedEl.textContent = 'Data: Jan 6, 2026';
+        }
+      }
+      const modelsEl = document.getElementById('home-stat-models');
+      if (modelsEl && d.total_models_in_db) {
+        modelsEl.textContent = d.total_models_in_db.toLocaleString();
+      }
     }
+  } catch (_) {}
 
-    latestEl.innerHTML = renderWeeklyOrgTable(data.latest_digest);
+  const orgsEl = document.getElementById('home-stat-orgs');
+  if (orgsEl) orgsEl.textContent = allCompanies.length || '—';
 
-    // Past digests accordion (skip the first/latest one already shown)
-    const past = data.history.filter(h => h.id !== data.latest_digest.id);
-    if (past.length > 0) {
-      historyEl.style.display = '';
-      past.forEach(d => {
-        const item = document.createElement('div');
-        item.className = 'home-history-item';
-        item.innerHTML = `
-          <div class="home-history-row" data-id="${d.id}">
-            <span class="home-history-week">${fmtWeekRange(d.week_start, d.week_end)}</span>
-            <span class="home-history-count">${d.new_models} new models</span>
-            <span class="home-history-toggle">▼</span>
-          </div>
-          <div class="home-history-body" style="display:none">
-            ${renderWeeklyOrgTable(d)}
-          </div>`;
-        item.querySelector('.home-history-row').addEventListener('click', () => {
-          const body = item.querySelector('.home-history-body');
-          const arrow = item.querySelector('.home-history-toggle');
-          const open = body.style.display !== 'none';
-          body.style.display = open ? 'none' : '';
-          arrow.textContent = open ? '▼' : '▲';
-        });
-        histListEl.appendChild(item);
-      });
-    }
-  } catch (err) {
-    latestEl.innerHTML = `<div style="padding:2rem;color:#ef4444">Failed to load home data: ${err.message}</div>`;
-    console.error('Home load error:', err);
-  }
+  const licEl = document.getElementById('home-stat-licenses');
+  if (licEl) licEl.textContent = allLicenses.length || '—';
 }
 
 /* ── Init ───────────────────────────────────────────────────────────────────*/
 loadStatus();
-loadCompanyList().catch(err => {
-  console.error('Failed to load companies:', err);
-  const ul = document.getElementById('company-list');
-  if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
-});
-
-loadLicenseList().catch(err => {
-  console.error('Failed to load licenses:', err);
-  const ul = document.getElementById('license-list');
-  if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
-});
+Promise.all([
+  loadCompanyList().catch(err => {
+    console.error('Failed to load companies:', err);
+    const ul = document.getElementById('company-list');
+    if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
+  }),
+  loadLicenseList().catch(err => {
+    console.error('Failed to load licenses:', err);
+    const ul = document.getElementById('license-list');
+    if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
+  }),
+]).then(loadHomeStats);
 
 let analysisNavReady = false;
 let historicalNavReady = false;
@@ -1705,5 +1653,3 @@ const setupMapSection = () => {
 setupMapSection();
 window.addEventListener('hashchange', () => setTimeout(setupMapSection, 50));
 
-loadHomeSection();
-window.addEventListener('hashchange', () => setTimeout(loadHomeSection, 50));
