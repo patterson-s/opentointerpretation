@@ -31,6 +31,10 @@ from api.routers import companies, analysis, home, licenses, models, research, s
 
 class BasicAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Allow Render health checks through without credentials
+        if request.method == "HEAD" and request.url.path == "/":
+            return Response("OK", status_code=200)
+
         expected_user = os.environ.get("BASIC_AUTH_USERNAME", "spatt")
         expected_pass = os.environ.get("BASIC_AUTH_PASSWORD", "spatt")
         auth = request.headers.get("Authorization", "")
