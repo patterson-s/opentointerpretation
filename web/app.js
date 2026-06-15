@@ -741,48 +741,52 @@ async function loadStatus() {
 /* ── Home stats ─────────────────────────────────────────────────────────────*/
 
 async function loadHomeStats() {
-  try {
-    const res = await fetch('/api/status');
-    if (res.ok) {
-      const d = await res.json();
-      const updatedEl = document.getElementById('home-updated');
-      if (updatedEl) {
-        if (d.last_collected_at) {
-          const dt = new Date(d.last_collected_at);
-          const fmt = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-          updatedEl.textContent = `Last updated: ${fmt}`;
-        } else {
-          updatedEl.textContent = 'Data: Jan 6, 2026';
-        }
-      }
-      const modelsEl = document.getElementById('home-stat-models');
-      if (modelsEl && d.total_models_in_db) {
-        modelsEl.textContent = d.total_models_in_db.toLocaleString();
-      }
+  const safe = r => r.ok ? r.json() : null;
+  const [statusResult, companiesResult, licensesResult] = await Promise.allSettled([
+    fetch('/api/status').then(safe),
+    fetch('/api/companies').then(safe),
+    fetch('/api/licenses').then(safe),
+  ]);
+
+  const status    = statusResult.status    === 'fulfilled' ? statusResult.value    : null;
+  const companies = companiesResult.status === 'fulfilled' ? companiesResult.value : null;
+  const licenses  = licensesResult.status  === 'fulfilled' ? licensesResult.value  : null;
+
+  const updatedEl = document.getElementById('home-updated');
+  if (updatedEl && status) {
+    if (status.last_collected_at) {
+      const dt = new Date(status.last_collected_at);
+      updatedEl.textContent = `Last updated: ${dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+      updatedEl.textContent = 'Data: Jan 6, 2026';
     }
-  } catch (_) {}
+  }
+
+  const modelsEl = document.getElementById('home-stat-models');
+  if (modelsEl && status && status.total_models_in_db) {
+    modelsEl.textContent = status.total_models_in_db.toLocaleString();
+  }
 
   const orgsEl = document.getElementById('home-stat-orgs');
-  if (orgsEl) orgsEl.textContent = allCompanies.length || '—';
+  if (orgsEl && companies) orgsEl.textContent = companies.length;
 
   const licEl = document.getElementById('home-stat-licenses');
-  if (licEl) licEl.textContent = allLicenses.length || '—';
+  if (licEl && licenses) licEl.textContent = licenses.length;
 }
 
 /* ── Init ───────────────────────────────────────────────────────────────────*/
 loadStatus();
-Promise.all([
-  loadCompanyList().catch(err => {
-    console.error('Failed to load companies:', err);
-    const ul = document.getElementById('company-list');
-    if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
-  }),
-  loadLicenseList().catch(err => {
-    console.error('Failed to load licenses:', err);
-    const ul = document.getElementById('license-list');
-    if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
-  }),
-]).then(loadHomeStats);
+loadHomeStats();
+loadCompanyList().catch(err => {
+  console.error('Failed to load companies:', err);
+  const ul = document.getElementById('company-list');
+  if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
+});
+loadLicenseList().catch(err => {
+  console.error('Failed to load licenses:', err);
+  const ul = document.getElementById('license-list');
+  if (ul) ul.innerHTML = '<li style="padding:.75rem 1rem;color:#ef4444">Failed to load</li>';
+});
 
 let analysisNavReady = false;
 let historicalNavReady = false;
